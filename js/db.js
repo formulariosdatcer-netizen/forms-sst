@@ -100,5 +100,29 @@ const DB = {
       try { await this._syncRecord(record); count++; } catch (e) {}
     }
     return count;
+  },
+
+  async fetchFromCloud(limit = 500) {
+    if (!this.supabase) return [];
+    try {
+      const { data, error } = await this.supabase
+        .from('submissions')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (error) return [];
+      return data.map(r => ({
+        id: r.id,
+        form_id: r.form_id,
+        worker_name: r.worker_name,
+        worker_lastname: r.worker_lastname,
+        worker_doc: r.worker_doc,
+        worker_role: r.worker_role,
+        worker_company: r.worker_company,
+        form_data: r.form_data,
+        created_at: r.created_at,
+        synced: true
+      }));
+    } catch (e) { return []; }
   }
 };

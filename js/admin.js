@@ -1,4 +1,5 @@
 let _currentRecord = null;
+let _cloudRecords = [];
 
 // ── Password gate ──────────────────────────────────────────
 const ADMIN_HASH = 'cd1a6c7e8d3fdcb0f282c7333ae46d5f3ae2c9090c238e52dcd5e1fcda884925';
@@ -31,22 +32,36 @@ document.addEventListener('DOMContentLoaded', async () => {
   populateFormFilter();
   renderList();
   updateStats();
+  loadFromCloud();
 
   window.addEventListener('sst-synced', (e) => {
     showSyncBanner(`✅ ${e.detail.count} registro(s) sincronizados`);
-    renderList();
-    updateStats();
+    loadFromCloud();
   });
 });
 
+async function loadFromCloud() {
+  if (!navigator.onLine) return;
+  _cloudRecords = await DB.fetchFromCloud();
+  renderList();
+  updateStats();
+}
+
 // ── Stats ─────────────────────────────────────────────────
 function updateStats() {
-  const records = DB.getQueue();
-  const pending = records.filter(r => !r.synced).length;
-  const synced  = records.filter(r => r.synced).length;
-  document.getElementById('stat-total').textContent   = records.length;
+  const all     = getMergedRecords();
+  const pending = DB.getQueue().filter(r => !r.synced).length;
+  const synced  = all.filter(r => r.synced).length;
+  document.getElementById('stat-total').textContent   = all.length;
   document.getElementById('stat-pending').textContent = pending;
   document.getElementById('stat-synced').textContent  = synced;
+}
+
+// Merge local pending + cloud records (no duplicates)
+function getMergedRecords() {
+  const localPending = DB.getQueue().filter(r => !r.synced);
+  // Cloud already has all synced ones — just prepend local pending
+  return [...localPending, ..._cloudRecords];
 }
 
 // ── Form filter options ────────────────────────────────────
@@ -67,7 +82,7 @@ function renderList() {
   const dateFilter   = document.getElementById('filter-date').value;
   const workerFilter = document.getElementById('filter-worker').value.trim().toLowerCase();
 
-  let records = DB.getQueue().slice().reverse(); // newest first
+  let records = getMergedRecords();
 
   if (formFilter)   records = records.filter(r => r.form_id === formFilter);
   if (dateFilter)   records = records.filter(r => r.created_at && r.created_at.startsWith(dateFilter));
@@ -272,7 +287,7 @@ async function syncAll() {
   btn.innerHTML = '<span class="spinner"></span> Sincronizando...';
   try {
     const n = await DB.syncAll();
-    if (n > 0) showSyncBanner(`✅ ${n} registro(s) sincronizados`);
+    if (n > 0) { showSyncBanner(`✅ ${n} registro(s) sincronizados`); await loadFromCloud(); }
     else showToast(navigator.onLine ? 'Todo ya está sincronizado' : '📵 Sin conexión');
     renderList(); updateStats();
   } finally {
