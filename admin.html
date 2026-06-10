@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#E87722">
+  <title>Panel Admin | SST DATCER</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <button class="header-back" onclick="history.back()">‹</button>
+    <img src="icons/logo.png" alt="DATCER" class="header-logo-img">
+    <span class="header-title">Panel Administrativo</span>
+  </header>
+
+  <div class="offline-banner" id="offline-banner">
+    📵 Sin conexión — mostrando registros locales
+  </div>
+  <div class="sync-banner" id="sync-banner"></div>
+
+  <div class="container">
+
+    <div class="stats-bar" id="stats-bar">
+      <div class="stat-card">
+        <div class="stat-num" id="stat-total">0</div>
+        <div class="stat-label">Registros</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-pending" style="color:var(--orange-warn)">0</div>
+        <div class="stat-label">Sin sincronizar</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="stat-synced" style="color:var(--green)">0</div>
+        <div class="stat-label">Sincronizados</div>
+      </div>
+    </div>
+
+    <button class="btn btn-dark mb-80" id="sync-btn" onclick="syncAll()" style="margin-bottom:12px">
+      🔄 Sincronizar todo con la nube
+    </button>
+
+    <div class="admin-filters">
+      <select id="filter-form" onchange="renderList()">
+        <option value="">Todos los formularios</option>
+      </select>
+      <input type="date" id="filter-date" onchange="renderList()" placeholder="Filtrar por fecha">
+      <input type="text" id="filter-worker" oninput="renderList()" placeholder="🔍 Buscar trabajador">
+    </div>
+
+    <div id="submissions-list"></div>
+
+  </div>
+
+  <!-- Modal detalle -->
+  <div class="modal-overlay" id="detail-modal" onclick="closeModal(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title" id="modal-title">Detalle</span>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="pdf-btn" onclick="downloadCurrentPDF()">
+          📄 Descargar PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Scripts -->
+  <script src="js/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/db.js"></script>
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+  <script src="js/pdf.js"></script>
+  <!-- Form definitions -->
+  <script src="js/forms/fr-sst-36.js"></script>
+  <script src="js/forms/fr-sst-37.js"></script>
+  <script src="js/forms/fr-sst-38.js"></script>
+  <script src="js/forms/fr-sst-39.js"></script>
+  <script src="js/forms/fr-sst-40.js"></script>
+  <script src="js/forms/fr-sst-41.js"></script>
+  <script src="js/forms/fr-sst-42.js"></script>
+  <script src="js/forms/fr-sst-43.js"></script>
+  <script src="js/forms/fr-sst-44.js"></script>
+  <script src="js/forms/fr-sst-45.js"></script>
+  <script src="js/forms/fr-sst-46.js"></script>
+  <script src="js/forms/fr-sst-47.js"></script>
+  <script src="js/forms/fr-sst-48.js"></script>
+  <script src="js/forms/fr-sst-49.js"></script>
+  <script src="js/forms/fr-sst-50.js"></script>
+  <script src="js/forms/fr-sst-51.js"></script>
+  <script src="js/forms/fr-sst-52.js"></script>
+  <script src="js/forms/fr-sst-53.js"></script>
+  <script src="js/forms/fr-sst-54.js"></script>
+  <script src="js/forms/fr-sst-55.js"></script>
+  <script src="js/forms/fr-sst-56.js"></script>
+  <!-- Admin logic -->
+  <script src="js/admin.js"></script>
+
+</body>
+</html>

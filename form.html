@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#E87722">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Formulario | SST DATCER</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <button class="header-back" onclick="history.back()">‹</button>
+    <img src="icons/logo.png" class="header-logo-img" alt="DATCER">
+    <span class="header-code" id="header-code"></span>
+  </header>
+
+  <div class="offline-banner" id="offline-banner">
+    📵 Sin conexión — el formulario se guardará localmente
+  </div>
+
+  <div class="step-indicator" id="step-indicator">
+    <div class="step active" id="step-1">
+      <div class="step-num">1</div>
+      <span class="step-label">Tus datos</span>
+    </div>
+    <span class="step-divider">›</span>
+    <div class="step pending" id="step-2">
+      <div class="step-num">2</div>
+      <span class="step-label">Formulario</span>
+    </div>
+  </div>
+
+  <div class="container mb-80" id="form-container">
+    <!-- Rendered by form.js -->
+  </div>
+
+  <div class="action-bar" id="action-bar">
+    <button class="btn btn-primary" id="action-btn">Continuar →</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Config (Supabase credentials) -->
+  <script src="js/config.js"></script>
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- DB abstraction -->
+  <script src="js/db.js"></script>
+  <!-- Form definitions -->
+  <script src="js/forms/fr-sst-36.js"></script>
+  <script src="js/forms/fr-sst-37.js"></script>
+  <script src="js/forms/fr-sst-38.js"></script>
+  <script src="js/forms/fr-sst-39.js"></script>
+  <script src="js/forms/fr-sst-40.js"></script>
+  <script src="js/forms/fr-sst-41.js"></script>
+  <script src="js/forms/fr-sst-42.js"></script>
+  <script src="js/forms/fr-sst-43.js"></script>
+  <script src="js/forms/fr-sst-44.js"></script>
+  <script src="js/forms/fr-sst-45.js"></script>
+  <script src="js/forms/fr-sst-46.js"></script>
+  <script src="js/forms/fr-sst-47.js"></script>
+  <script src="js/forms/fr-sst-48.js"></script>
+  <script src="js/forms/fr-sst-49.js"></script>
+  <script src="js/forms/fr-sst-50.js"></script>
+  <script src="js/forms/fr-sst-51.js"></script>
+  <script src="js/forms/fr-sst-52.js"></script>
+  <script src="js/forms/fr-sst-53.js"></script>
+  <script src="js/forms/fr-sst-54.js"></script>
+  <script src="js/forms/fr-sst-55.js"></script>
+  <script src="js/forms/fr-sst-56.js"></script>
+  <!-- Page logic -->
+  <script src="js/form.js"></script>
+
+</body>
+</html>
