@@ -106,55 +106,49 @@ const PDF = {
     const form = window.SST_FORMS ? window.SST_FORMS[record.form_id] : null;
     const logo = await this.loadLogo();
 
-    // ── HEADER premium ──────────────────────────────────────
-    const HDR = 38;
+    // ── HEADER ──────────────────────────────────────────────
+    // Zona oscura principal (logo + título)
+    const HDR_TOP = 28;
+    doc.setFillColor(35, 35, 35);
+    doc.rect(0, 0, W, HDR_TOP, 'F');
 
-    // Left section — near-black logo zone
-    doc.setFillColor(28, 28, 28);
-    doc.rect(0, 0, 68, HDR, 'F');
-
-    // Right section — dark gray title zone
-    doc.setFillColor(45, 45, 45);
-    doc.rect(68, 0, W - 68, HDR, 'F');
-
-    // Logo centered in left zone
+    // Logo — izquierda, centrado verticalmente
     if (logo) {
-      const logoW = 42, logoH = 15;
-      doc.addImage(logo, 'PNG', (68 - logoW) / 2, (HDR - logoH) / 2, logoW, logoH);
+      const lh = 14, lw = lh * 2.8;
+      doc.addImage(logo, 'PNG', 12, (HDR_TOP - lh) / 2, lw, lh);
     } else {
-      doc.setTextColor(255, 255, 255); doc.setFont(undefined, 'bold'); doc.setFontSize(18);
-      doc.text('DATCER', 34, HDR / 2, { align: 'center', baseline: 'middle' });
+      doc.setTextColor(255,255,255); doc.setFont(undefined,'bold'); doc.setFontSize(16);
+      doc.text('DATCER', 14, HDR_TOP / 2 + 3);
     }
 
-    // Orange vertical separator
-    doc.setDrawColor(232, 119, 34); doc.setLineWidth(0.4);
-    doc.line(68, 5, 68, HDR - 5);
+    // Línea vertical naranja separadora
+    doc.setDrawColor(232,119,34); doc.setLineWidth(0.6);
+    doc.line(62, 5, 62, HDR_TOP - 5);
 
-    // Form title right-aligned
+    // Título del formulario — derecha, centrado vertical
     const title = form ? form.title : record.form_id;
-    doc.setTextColor(255, 255, 255); doc.setFont(undefined, 'bold'); doc.setFontSize(12);
-    const titleLines = doc.splitTextToSize(title, W - 68 - 20);
-    let ty = 13;
-    titleLines.forEach(line => { doc.text(line, W - 14, ty, { align: 'right' }); ty += 5; });
+    doc.setTextColor(255,255,255); doc.setFont(undefined,'bold'); doc.setFontSize(12);
+    const titleLines = doc.splitTextToSize(title, W - 76);
+    const titleBlockH = titleLines.length * 5.5;
+    let ty = (HDR_TOP - titleBlockH) / 2 + 4.5;
+    titleLines.forEach(line => { doc.text(line, W - 12, ty, { align:'right' }); ty += 5.5; });
 
-    // SST badge — orange rectangle bottom-left of right section
-    doc.setFillColor(232, 119, 34);
-    doc.rect(68, HDR - 4, 28, 4, 'F');
-    doc.setTextColor(255, 255, 255); doc.setFont(undefined, 'bold'); doc.setFontSize(7);
-    doc.text('SST', 68 + 14, HDR - 4 + 2, { align: 'center', baseline: 'middle' });
+    // Barra naranja inferior con metadatos
+    const META_H = 8;
+    doc.setFillColor(232,119,34);
+    doc.rect(0, HDR_TOP, W, META_H, 'F');
 
-    // Meta: code · version · date
-    doc.setTextColor(160, 160, 160); doc.setFont(undefined, 'normal'); doc.setFontSize(6.5);
+    // Metadatos en la barra naranja
     const metaCode = form ? form.code : '';
-    const metaVer  = form ? form.version : '';
-    const metaStr  = [metaCode, metaVer, this.formatDate(record.created_at)].filter(Boolean).join('   ·   ');
-    doc.text(metaStr, W - 14, HDR - 5, { align: 'right' });
+    const metaVer  = form ? `v${form.version}` : '';
+    const metaDate = this.formatDate(record.created_at);
+    doc.setTextColor(255,255,255); doc.setFont(undefined,'bold'); doc.setFontSize(7);
+    doc.text(metaCode, 12, HDR_TOP + META_H / 2 + 1.2);
+    doc.setFont(undefined,'normal'); doc.setFontSize(6.5);
+    doc.text([metaVer, metaDate].filter(Boolean).join('   ·   '), W - 12, HDR_TOP + META_H / 2 + 1.2, { align:'right' });
 
-    // Bottom bars
-    doc.setFillColor(232, 119, 34);  doc.rect(0, HDR,     W, 3,   'F');
-    doc.setFillColor(196, 94, 15);   doc.rect(0, HDR + 3, W, 1.5, 'F');
-
-    y = HDR + 12.5;
+    const HDR = HDR_TOP + META_H;
+    y = HDR + 10;
 
     // ── WORKER INFO BOX ──────────────────────────────────────
     const BOX_H = 30;
