@@ -1,4 +1,4 @@
-const CACHE = 'sst-datcer-v2';
+const CACHE = 'sst-datcer-v3';
 
 const ASSETS = [
   './index.html',
@@ -55,20 +55,27 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
-
-  // Supabase API calls: network-only
   if (e.request.url.includes('supabase.co')) return;
 
-  e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).then(res => {
-        if (res.ok) {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
-        }
+  const isCDN = /jsdelivr|cloudflare|cdnjs/.test(e.request.url);
+
+  if (isCDN) {
+    // CDN libraries: cache-first (nunca cambian)
+    e.respondWith(
+      caches.match(e.request).then(cached => cached ||
+        fetch(e.request).then(res => {
+          if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+          return res;
+        })
+      )
+    );
+  } else {
+    // Archivos propios: network-first (siempre descarga lo nuevo, caché si no hay internet)
+    e.respondWith(
+      fetch(e.request).then(res => {
+        if (res.ok) caches.open(CACHE).then(c => c.put(e.request, res.clone()));
         return res;
-      }).catch(() => cached);
-    })
-  );
+      }).catch(() => caches.match(e.request))
+    );
+  }
 });
