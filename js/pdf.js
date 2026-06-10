@@ -1,6 +1,27 @@
 const PDF = {
   _logo: null,
 
+  // ── Brand palette (RGB) ─────────────────────────────────────
+  C: {
+    orange:     [232, 119, 34],   // #E87722
+    orangeDk:   [196, 94, 15],    // #C45E0F
+    darkGray:   [50, 50, 50],     // #323232
+    headerBg:   [30, 30, 30],     // #1e1e1e
+    ink:        [26, 26, 26],     // #1a1a1a
+    label:      [136, 136, 136],  // #888888
+    rowAlt:     [249, 249, 249],  // #f9f9f9
+    sep:        [238, 238, 238],  // #eeeeee
+    boxBorder:  [224, 224, 224],  // #e0e0e0
+    headerSep:  [85, 85, 85],     // #555555
+    subText:    [170, 170, 170],  // #aaaaaa
+    green:      [27, 94, 32],     // #1b5e20
+    greenBg:    [232, 245, 233],  // #e8f5e9
+    red:        [183, 28, 28],    // #b71c1c
+    redBg:      [255, 235, 238],  // #ffebee
+    neutral:    [117, 117, 117],  // #757575
+    tblAlt:     [250, 250, 250]   // #fafafa
+  },
+
   async loadLogo() {
     if (this._logo) return this._logo;
     return new Promise(resolve => {
@@ -26,226 +47,278 @@ const PDF = {
 
   slugDate(iso) { return iso ? iso.substr(0, 10).replace(/-/g, '') : ''; },
 
-  addFooter(doc) {
+  addFooter(doc, formCode) {
     const n = doc.internal.getNumberOfPages();
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
+    const FH = 11;
     for (let i = 1; i <= n; i++) {
       doc.setPage(i);
+
       // Orange footer bar
-      doc.setFillColor(232, 119, 34);
-      doc.rect(0, H - 10, W, 10, 'F');
-      // Left text
+      doc.setFillColor(...this.C.orange);
+      doc.rect(0, H - FH, W, FH, 'F');
+
+      // Thin dark separator at top of footer
+      doc.setDrawColor(...this.C.darkGray);
+      doc.setLineWidth(0.4);
+      doc.line(0, H - FH, W, H - FH);
+
+      const baseY = H - FH / 2 + 1;
+
+      // Left: brand (bold) + descriptor (normal)
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(7); doc.setFont(undefined, 'bold');
-      doc.text('DATCER S.A.S', 14, H - 5.5);
+      doc.setFontSize(7.5); doc.setFont(undefined, 'bold');
+      doc.text('DATCER S.A.S', 14, baseY);
+      const bw = doc.getTextWidth('DATCER S.A.S');
       doc.setFont(undefined, 'normal');
-      doc.text('  |  Sistema de Gestión en SST', 14 + doc.getTextWidth('DATCER S.A.S'), H - 5.5);
-      // Right: page number
-      doc.setFont(undefined, 'bold');
-      doc.text(`${i} / ${n}`, W - 14, H - 5.5, { align: 'right' });
-      // Thin top border on footer
-      doc.setDrawColor(196, 94, 15);
-      doc.setLineWidth(0.3);
-      doc.line(0, H - 10, W, H - 10);
+      doc.text('  |  Sistema de Gestión SST', 14 + bw, baseY);
+
+      // Center: form code
+      if (formCode) {
+        doc.setFontSize(7); doc.setFont(undefined, 'normal');
+        doc.text(formCode, W / 2, baseY, { align: 'center' });
+      }
+
+      // Right: page X of Y
+      doc.setFontSize(7.5); doc.setFont(undefined, 'bold');
+      doc.text(`Página ${i} de ${n}`, W - 14, baseY, { align: 'right' });
     }
   },
 
   needPage(doc, y, needed, H, margin) {
     if (y + needed > H - 16) {
       doc.addPage();
-      return margin + 6;
+      return margin + 8;
     }
     return y;
   },
 
-  async generate(record) {
+  async generate(record, mode = 'save') {
     if (!window.jspdf) { alert('PDF no disponible sin conexión la primera vez. Conéctate e intenta de nuevo.'); return; }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
     const M = 15;
-    let y = M;
+    let y;
 
     const form = window.SST_FORMS ? window.SST_FORMS[record.form_id] : null;
     const logo = await this.loadLogo();
 
-    // ── HEADER ──────────────────────────────────────────────
-    const HDR = 36;
+    // ── HEADER (full width, 40mm) ────────────────────────────
+    const HDR = 40;
 
-    // Main dark gray background
-    doc.setFillColor(50, 50, 50);
+    // Dark background
+    doc.setFillColor(...this.C.headerBg);
     doc.rect(0, 0, W, HDR, 'F');
 
-    // Orange accent: left stripe
-    doc.setFillColor(232, 119, 34);
-    doc.rect(0, 0, 4, HDR, 'F');
+    // Left orange accent stripe (5mm)
+    doc.setFillColor(...this.C.orange);
+    doc.rect(0, 0, 5, HDR, 'F');
 
-    // Orange accent: bottom bar
-    doc.rect(0, HDR, W, 2.5, 'F');
-
-    // Logo — right-sized, always proportional
+    // Logo (height 18mm, 3:1 ratio = 54mm wide), vertically centered
     if (logo) {
-      const logoH = 20;
-      const logoW = logoH * 2.1; // approximate aspect ratio of DATCER logo
+      const logoH = 18;
+      const logoW = logoH * 3;
       doc.addImage(logo, 'PNG', 10, (HDR - logoH) / 2, logoW, logoH);
     } else {
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(18); doc.setFont(undefined, 'bold');
-      doc.text('DATCER', 10, HDR / 2 + 4);
+      doc.setFontSize(22); doc.setFont(undefined, 'bold');
+      doc.text('DATCER', 10, HDR / 2 + 3);
     }
 
-    // Thin vertical separator
-    doc.setDrawColor(100, 100, 100);
-    doc.setLineWidth(0.4);
-    doc.line(58, 6, 58, HDR - 6);
+    // Thin vertical separator at x=68
+    doc.setDrawColor(...this.C.headerSep);
+    doc.setLineWidth(0.3);
+    doc.line(68, 7, 68, HDR - 7);
 
-    // Form title (right side)
+    // Right side: title + meta (from x=72 to W-14)
+    const rightX = W - 14;
     const title = form ? form.title : record.form_id;
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(13); doc.setFont(undefined, 'bold');
-    const titleLines = doc.splitTextToSize(title, W - 72);
-    const titleY = titleLines.length === 1 ? HDR / 2 - 1 : HDR / 2 - 4;
-    doc.text(titleLines, W - M, titleY, { align: 'right' });
+    const titleLines = doc.splitTextToSize(title, rightX - 72);
 
-    // Code + date below title
-    const code = form ? `${form.code}   ·   v${form.version}   ·   Fecha: ${this.formatDate(record.created_at)}` : '';
+    // Vertically center the title+meta block
+    const lineH = 5.4;
+    const metaGap = 5;
+    const blockH = titleLines.length * lineH + metaGap;
+    let ty = (HDR - blockH) / 2 + lineH - 1.5;
+    doc.text(titleLines, rightX, ty, { align: 'right' });
+
+    // Meta line below title
+    const meta = form
+      ? `${form.code}   ·   v${form.version}   ·   ${this.formatDate(record.created_at)}`
+      : this.formatDate(record.created_at);
     doc.setFontSize(7); doc.setFont(undefined, 'normal');
-    doc.setTextColor(200, 200, 200);
-    doc.text(code, W - M, HDR - 5, { align: 'right' });
+    doc.setTextColor(...this.C.subText);
+    doc.text(meta, rightX, ty + (titleLines.length - 1) * lineH + metaGap, { align: 'right' });
 
-    y = HDR + 8;
+    // Bottom orange bar (3mm)
+    doc.setFillColor(...this.C.orange);
+    doc.rect(0, HDR, W, 3, 'F');
 
-    // ── WORKER BOX ──────────────────────────────────────────
-    const BOX_H = 28;
-    // Outer box with subtle shadow effect (double rect)
-    doc.setFillColor(245, 245, 245);
-    doc.setDrawColor(220, 220, 220);
-    doc.setLineWidth(0.3);
-    doc.roundedRect(M, y, W - 2*M, BOX_H, 2, 2, 'FD');
+    y = HDR + 3 + 8;
 
-    // Left orange accent stripe inside box
-    doc.setFillColor(232, 119, 34);
-    doc.roundedRect(M, y, 3, BOX_H, 1, 1, 'F');
+    // ── WORKER INFO BOX ──────────────────────────────────────
+    const BOX_H = 30;
+    // White box with light border
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(...this.C.boxBorder);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(M, y, W - 2 * M, BOX_H, 3, 3, 'FD');
 
-    // Worker fields — two columns
+    // Left orange filled stripe (4mm)
+    doc.setFillColor(...this.C.orange);
+    doc.roundedRect(M, y, 4, BOX_H, 3, 3, 'F');
+    // square off the right edge of the stripe so it reads as a band
+    doc.rect(M + 2, y, 2, BOX_H, 'F');
+
     const lbl = (t, x, yy) => {
-      doc.setFont(undefined, 'bold'); doc.setTextColor(232, 119, 34); doc.setFontSize(6.5);
+      doc.setFont(undefined, 'bold'); doc.setTextColor(...this.C.orange); doc.setFontSize(6);
       doc.text(t.toUpperCase(), x, yy);
     };
     const val = (t, x, yy, maxW) => {
-      doc.setFont(undefined, 'normal'); doc.setTextColor(40, 40, 40); doc.setFontSize(8.5);
-      const lines = doc.splitTextToSize(t || '—', maxW || 60);
+      doc.setFont(undefined, 'normal'); doc.setTextColor(...this.C.ink); doc.setFontSize(9);
+      const lines = doc.splitTextToSize(String(t || '—'), maxW || 60);
       doc.text(lines[0], x, yy);
     };
 
-    const c1 = M + 7, c2 = W / 2 + 4;
-    lbl('Trabajador:',  c1, y + 7);    val(`${record.worker_name || ''} ${record.worker_lastname || ''}`.trim(), c1 + 23, y + 7, 55);
-    lbl('Cédula:',      c1, y + 14.5); val(record.worker_doc || '', c1 + 15, y + 14.5, 40);
-    lbl('Cargo:',       c1, y + 22);   val(record.worker_role || '', c1 + 13, y + 22, 50);
-    lbl('Empresa:',     c2, y + 7);    val(record.worker_company || '—', c2 + 19, y + 7, 55);
-    lbl('Fecha:',       c2, y + 14.5); val(this.formatDate(record.created_at), c2 + 13, y + 14.5, 40);
+    const innerX = M + 4 + 8;        // stripe (4) + left padding (8)
+    const colW = (W - 2 * M - 12) / 2;
+    const c1 = innerX;
+    const c2 = innerX + colW;
+    const topY = y + 6;
+    const rowGap = 8;
+    const valDy = 3.4;               // distance from label baseline to value baseline
 
-    // Horizontal divider inside box
-    doc.setDrawColor(210, 210, 210);
-    doc.setLineWidth(0.2);
-    doc.line(M + 7, y + BOX_H / 2, W - M - 4, y + BOX_H / 2);
+    // Left column
+    lbl('Trabajador', c1, topY);                 val(`${record.worker_name || ''} ${record.worker_lastname || ''}`.trim(), c1, topY + valDy, colW - 8);
+    lbl('Cédula',     c1, topY + rowGap);         val(record.worker_doc, c1, topY + rowGap + valDy, colW - 8);
+    lbl('Cargo',      c1, topY + rowGap * 2);     val(record.worker_role, c1, topY + rowGap * 2 + valDy, colW - 8);
 
-    y += BOX_H + 7;
+    // Right column
+    lbl('Empresa',    c2, topY);                  val(record.worker_company, c2, topY + valDy, colW - 8);
+    lbl('Fecha',      c2, topY + rowGap);         val(this.formatDate(record.created_at), c2, topY + rowGap + valDy, colW - 8);
+    lbl('Estado',     c2, topY + rowGap * 2);     val(record.synced ? 'Sincronizado' : 'Pendiente', c2, topY + rowGap * 2 + valDy, colW - 8);
 
-    // ── FORM SECTIONS ────────────────────────────────────────
+    y += BOX_H + 8;
+
+    const formCode = form ? form.code : record.form_id;
+
+    // ── SECTIONS ─────────────────────────────────────────────
     if (form && form.sections && record.form_data) {
       for (const section of form.sections) {
-        y = this.needPage(doc, y, 18, H, M);
+        y = this.needPage(doc, y, 22, H, M);
 
-        // Section header with gradient-like effect
-        doc.setFillColor(232, 119, 34);
-        doc.rect(M, y, W - 2*M, 8, 'F');
-        // Dark right accent
-        doc.setFillColor(196, 94, 15);
-        doc.rect(W - M - 8, y, 8, 8, 'F');
+        // Section header (orange, 9mm) with dark right triangle accent
+        const SH = 9;
+        doc.setFillColor(...this.C.orange);
+        doc.rect(M, y, W - 2 * M, SH, 'F');
+
+        // Right triangle accent in last 12mm (dark orange)
+        const triX = W - M - 12;
+        doc.setFillColor(...this.C.orangeDk);
+        doc.triangle(triX, y, W - M, y, W - M, y + SH, 'F');
 
         doc.setTextColor(255, 255, 255);
-        doc.setFontSize(7.5); doc.setFont(undefined, 'bold');
-        doc.text(section.title.toUpperCase(), M + 4, y + 5.5);
-        y += 11;
+        doc.setFontSize(8); doc.setFont(undefined, 'bold');
+        doc.text(String(section.title || '').toUpperCase(), M + 4, y + SH / 2 + 1.6);
 
+        y += SH + 10;
+
+        let rowIndex = 0;
         for (const field of section.fields) {
-          y = this.renderField(doc, field, record.form_data, y, M, W, H);
+          const before = y;
+          y = this.renderField(doc, field, record.form_data, y, M, W, H, rowIndex);
+          if (y !== before) rowIndex++;
         }
-        y += 3;
+        y += 4;
       }
     }
 
-    this.addFooter(doc);
+    this.addFooter(doc, formCode);
 
     const slug = (record.worker_lastname || 'trabajador').replace(/\s+/g, '-').toLowerCase();
-    doc.save(`${record.form_id}_${slug}_${this.slugDate(record.created_at)}.pdf`);
+    const filename = `${record.form_id}_${slug}_${this.slugDate(record.created_at)}.pdf`;
+
+    if (mode === 'preview') {
+      const url = doc.output('bloburl');
+      window.open(url, '_blank');
+    } else {
+      doc.save(filename);
+    }
   },
 
-  renderField(doc, field, data, y, M, W, H) {
+  renderField(doc, field, data, y, M, W, H, rowIndex = 0) {
     const val = data[field.id];
-    const CW = W - 2*M;
+    const CW = W - 2 * M;
+    const LBL_W = 55;
 
     switch (field.type) {
 
       case 'text': case 'number': case 'date': case 'time':
-      case 'textarea': case 'select': {
-        if (!field.label) return y;
-        y = this.needPage(doc, y, 8, H, M);
-        // Alternate row tint
-        doc.setFillColor(250, 250, 250);
-        doc.rect(M, y - 4, CW, 7, 'F');
-        doc.setFontSize(7); doc.setFont(undefined, 'bold'); doc.setTextColor(120, 120, 120);
-        doc.text((field.label || '') + ':', M + 2, y);
-        doc.setFont(undefined, 'normal'); doc.setTextColor(25, 25, 25); doc.setFontSize(8.5);
-        const str = val ? String(val) : '—';
-        const lines = doc.splitTextToSize(str, CW - 58);
-        doc.text(lines, M + 58, y);
-        doc.setDrawColor(235, 235, 235); doc.setLineWidth(0.2);
-        doc.line(M, y + 2.5, W - M, y + 2.5);
-        y += Math.max(7, lines.length * 5.5);
-        break;
-      }
+      case 'textarea': case 'select': case 'radio': {
+        if (!field.label && field.type !== 'radio') return y;
 
-      case 'radio': {
-        y = this.needPage(doc, y, 8, H, M);
-        doc.setFillColor(250, 250, 250);
-        doc.rect(M, y - 4, CW, 7, 'F');
-        doc.setFontSize(7); doc.setFont(undefined, 'bold'); doc.setTextColor(120, 120, 120);
-        doc.text((field.label || '') + ':', M + 2, y);
-        doc.setFont(undefined, 'bold'); doc.setTextColor(50, 50, 50); doc.setFontSize(8.5);
-        doc.text(val || '—', M + 58, y);
-        doc.setDrawColor(235, 235, 235); doc.setLineWidth(0.2);
-        doc.line(M, y + 2.5, W - M, y + 2.5);
-        y += 7;
+        const str = (val !== undefined && val !== null && val !== '') ? String(val) : '—';
+        const valLines = doc.splitTextToSize(str, CW - LBL_W - 4);
+        const rowH = Math.max(8, valLines.length * 4.4 + 3.6);
+
+        y = this.needPage(doc, y, rowH, H, M);
+
+        // Alternating row background
+        if (rowIndex % 2 === 1) {
+          doc.setFillColor(...this.C.rowAlt);
+          doc.rect(M, y, CW, rowH, 'F');
+        }
+
+        const baseY = y + rowH / 2 + 1;
+
+        // Label
+        doc.setFontSize(7); doc.setFont(undefined, 'normal'); doc.setTextColor(...this.C.label);
+        doc.text(field.label || '', M + 3, baseY);
+
+        // Value (bold). radio shown bold ink as well.
+        doc.setFont(undefined, 'bold'); doc.setTextColor(...this.C.ink); doc.setFontSize(8.5);
+        const valY = y + (rowH - (valLines.length - 1) * 4.4) / 2 + 1;
+        doc.text(valLines, M + LBL_W, valY);
+
+        // Bottom separator
+        doc.setDrawColor(...this.C.sep); doc.setLineWidth(0.2);
+        doc.line(M, y + rowH, W - M, y + rowH);
+
+        y += rowH;
         break;
       }
 
       case 'checkgroup': {
         y = this.needPage(doc, y, 10, H, M);
         if (field.label) {
-          doc.setFontSize(7); doc.setFont(undefined, 'bold'); doc.setTextColor(120, 120, 120);
-          doc.text(field.label.toUpperCase() + ':', M + 2, y); y += 6;
+          doc.setFontSize(7); doc.setFont(undefined, 'normal'); doc.setTextColor(...this.C.label);
+          doc.text(field.label.toUpperCase(), M + 3, y + 3);
+          y += 7;
         }
         const sel = Array.isArray(val) ? val : [];
         if (!sel.length) {
-          doc.setFontSize(8); doc.setFont(undefined, 'italic'); doc.setTextColor(180, 180, 180);
-          doc.text('Ninguno seleccionado', M + 6, y); y += 5;
+          doc.setFontSize(8); doc.setFont(undefined, 'italic'); doc.setTextColor(...this.C.neutral);
+          doc.text('Ninguno seleccionado', M + 6, y + 2);
+          y += 7;
         } else {
           sel.forEach(item => {
-            y = this.needPage(doc, y, 6, H, M);
-            doc.setFontSize(7.5); doc.setFont(undefined, 'normal'); doc.setTextColor(40, 40, 40);
+            const lines = doc.splitTextToSize(String(item), CW - 14);
+            const h = lines.length * 4.6 + 1.5;
+            y = this.needPage(doc, y, h + 1, H, M);
             // Orange bullet
-            doc.setFillColor(232, 119, 34);
-            doc.circle(M + 5, y - 1, 1, 'F');
-            const lines = doc.splitTextToSize(item, CW - 12);
-            doc.text(lines, M + 9, y);
-            y += lines.length * 5 + 1;
+            doc.setFillColor(...this.C.orange);
+            doc.circle(M + 5, y + 1.4, 1, 'F');
+            doc.setFontSize(8); doc.setFont(undefined, 'normal'); doc.setTextColor(...this.C.ink);
+            doc.text(lines, M + 9, y + 2.6);
+            y += h;
           });
+          y += 1;
         }
-        y += 2;
         break;
       }
 
@@ -253,81 +326,102 @@ const PDF = {
         const items = (val && typeof val === 'object') ? val : {};
         const rows = (field.items || []).map((item, i) => [String(i + 1), item, items[i] || '—']);
         if (!rows.length) return y;
-        y = this.needPage(doc, y, 16, H, M);
+        y = this.needPage(doc, y, 18, H, M);
+
+        if (field.label) {
+          doc.setFontSize(7); doc.setFont(undefined, 'normal'); doc.setTextColor(...this.C.label);
+          doc.text(field.label.toUpperCase(), M + 3, y + 3);
+          y += 6;
+        }
+
+        const C = this.C;
         doc.autoTable({
           head: [['#', 'Condición / Verificación', 'Resp.']],
           body: rows,
           startY: y,
           margin: { left: M, right: M },
-          theme: 'striped',
+          theme: 'plain',
+          styles: { lineWidth: 0.1, lineColor: [235, 235, 235] },
           headStyles: {
-            fillColor: [77, 77, 77], textColor: [255, 255, 255],
-            fontSize: 7.5, fontStyle: 'bold', cellPadding: { top: 3, bottom: 3, left: 3, right: 3 }
+            fillColor: C.darkGray, textColor: [255, 255, 255],
+            fontSize: 8, fontStyle: 'bold', halign: 'left',
+            cellPadding: { top: 2.8, bottom: 2.8, left: 3, right: 3 }
           },
-          bodyStyles: { fontSize: 7.5, textColor: [40, 40, 40], cellPadding: 2.5 },
-          alternateRowStyles: { fillColor: [252, 252, 252] },
+          bodyStyles: { fontSize: 8, textColor: C.ink, cellPadding: 2.6, fillColor: [255, 255, 255] },
           columnStyles: {
-            0: { cellWidth: 8, halign: 'center', fontStyle: 'bold' },
-            1: { cellWidth: CW - 28 },
-            2: { cellWidth: 20, halign: 'center', fontStyle: 'bold', fontSize: 8 }
+            0: { cellWidth: 8, halign: 'center', fontStyle: 'bold', textColor: C.neutral },
+            1: { cellWidth: CW - 30 },
+            2: { cellWidth: 22, halign: 'center', fontStyle: 'bold' }
           },
           didParseCell(d) {
+            // manual alternating rows
+            if (d.section === 'body' && d.row.index % 2 === 1) {
+              d.cell.styles.fillColor = C.tblAlt;
+            }
             if (d.column.index === 2 && d.section === 'body') {
-              const v = d.cell.text[0];
-              if (v === 'SI')       { d.cell.styles.textColor = [46, 125, 50]; d.cell.styles.fillColor = [232, 245, 233]; }
-              else if (v === 'NO')  { d.cell.styles.textColor = [198, 40, 40]; d.cell.styles.fillColor = [255, 235, 235]; }
-              else if (v === 'NA' || v === 'N/A') { d.cell.styles.textColor = [100, 100, 100]; }
+              const v = (d.cell.text[0] || '').toUpperCase();
+              if (v === 'SI' || v === 'SÍ') { d.cell.styles.textColor = C.green; d.cell.styles.fillColor = C.greenBg; }
+              else if (v === 'NO')          { d.cell.styles.textColor = C.red;   d.cell.styles.fillColor = C.redBg; }
+              else { d.cell.styles.textColor = C.neutral; d.cell.styles.fontStyle = 'normal'; }
             }
           }
         });
-        y = doc.lastAutoTable.finalY + 5;
+        y = doc.lastAutoTable.finalY + 6;
         break;
       }
 
       case 'table': {
         const rows = Array.isArray(val) ? val : [];
         if (field.label) {
-          y = this.needPage(doc, y, 8, H, M);
-          doc.setFontSize(7); doc.setFont(undefined, 'bold'); doc.setTextColor(120, 120, 120);
-          doc.text(field.label.toUpperCase() + ':', M + 2, y); y += 6;
+          y = this.needPage(doc, y, 10, H, M);
+          doc.setFontSize(7); doc.setFont(undefined, 'normal'); doc.setTextColor(...this.C.label);
+          doc.text(field.label.toUpperCase(), M + 3, y + 3);
+          y += 6;
         }
         if (!rows.length) {
-          doc.setFontSize(8); doc.setFont(undefined, 'italic'); doc.setTextColor(180, 180, 180);
-          doc.text('Sin registros', M + 6, y); return y + 7;
+          doc.setFontSize(8); doc.setFont(undefined, 'italic'); doc.setTextColor(...this.C.neutral);
+          doc.text('Sin registros', M + 6, y + 2);
+          return y + 8;
         }
-        const headers = (field.columns || []).map(c => c.label);
+        const cols = field.columns || [];
+        const headers = cols.map(c => c.label);
         const body = rows.map(row =>
-          (field.columns || []).map(c => {
-            const v = row[c.id]; return v !== undefined && v !== null ? String(v) : '';
+          cols.map(c => {
+            const v = row[c.id];
+            return v !== undefined && v !== null ? String(v) : '';
           })
         );
         const colStyles = {};
-        (field.columns || []).forEach((c, i) => {
-          if (c.type === 'bc')     colStyles[i] = { cellWidth: 12, halign: 'center', fontStyle: 'bold' };
-          else if (c.type === 'number') colStyles[i] = { cellWidth: 14 };
-          else if (c.type === 'date')   colStyles[i] = { cellWidth: 20 };
+        cols.forEach((c, i) => {
+          if (c.type === 'bc')          colStyles[i] = { cellWidth: 12, halign: 'center', fontStyle: 'bold' };
+          else if (c.type === 'number') colStyles[i] = { cellWidth: 16, halign: 'right' };
+          else if (c.type === 'date')   colStyles[i] = { cellWidth: 22, halign: 'center' };
         });
-        y = this.needPage(doc, y, 16, H, M);
+
+        y = this.needPage(doc, y, 18, H, M);
+        const C = this.C;
         doc.autoTable({
           head: [headers], body,
           startY: y, margin: { left: M, right: M }, theme: 'grid',
+          styles: { lineWidth: 0.1, lineColor: [225, 225, 225] },
           headStyles: {
-            fillColor: [50, 50, 50], textColor: [255, 255, 255],
+            fillColor: C.darkGray, textColor: [255, 255, 255],
             fontSize: 7, fontStyle: 'bold',
-            cellPadding: { top: 3, bottom: 3, left: 3, right: 3 }
+            cellPadding: { top: 2.8, bottom: 2.8, left: 2.5, right: 2.5 }
           },
-          bodyStyles: { fontSize: 7, textColor: [40, 40, 40], cellPadding: 2.5 },
-          alternateRowStyles: { fillColor: [250, 250, 250] },
+          bodyStyles: { fontSize: 7, textColor: C.ink, cellPadding: 2.5, fillColor: [255, 255, 255] },
+          alternateRowStyles: { fillColor: C.tblAlt },
           columnStyles: colStyles,
           didParseCell(d) {
-            const col = (field.columns || [])[d.column.index];
+            const col = cols[d.column.index];
             if (col && col.type === 'bc' && d.section === 'body') {
-              if (d.cell.text[0] === 'B')      { d.cell.styles.textColor = [46, 125, 50]; d.cell.styles.fillColor = [232, 245, 233]; }
-              else if (d.cell.text[0] === 'C') { d.cell.styles.textColor = [198, 80, 0];  d.cell.styles.fillColor = [255, 243, 224]; }
+              const t = (d.cell.text[0] || '').toUpperCase();
+              if (t === 'B')      { d.cell.styles.textColor = C.green;  d.cell.styles.fillColor = C.greenBg; }
+              else if (t === 'C') { d.cell.styles.textColor = C.orange; d.cell.styles.fillColor = [255, 243, 224]; }
             }
           }
         });
-        y = doc.lastAutoTable.finalY + 5;
+        y = doc.lastAutoTable.finalY + 6;
         break;
       }
     }

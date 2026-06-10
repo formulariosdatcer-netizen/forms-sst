@@ -124,7 +124,8 @@ function renderList() {
         </div>
         <div class="submission-actions">
           <button class="submission-btn" onclick="openDetail(${i})">👁 Ver detalle</button>
-          <button class="submission-btn pdf-btn" onclick="downloadPDF(${i})">📄 PDF</button>
+          <button class="submission-btn" onclick="previewPDF(${i})">🔍 Vista previa</button>
+          <button class="submission-btn pdf-btn" onclick="downloadPDF(${i})">⬇️ PDF</button>
         </div>
       </div>`;
   }).join('');
@@ -261,10 +262,16 @@ function renderDetailField(field, data) {
 }
 
 // ── PDF ───────────────────────────────────────────────────
+async function previewPDF(index) {
+  const record = window._filteredRecords[index];
+  if (!record) return;
+  await PDF.generate(record, 'preview');
+}
+
 async function downloadPDF(index) {
   const record = window._filteredRecords[index];
   if (!record) return;
-  await PDF.generate(record);
+  await PDF.generate(record, 'save');
 }
 
 async function downloadCurrentPDF() {
@@ -273,11 +280,16 @@ async function downloadCurrentPDF() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Generando...';
   try {
-    await PDF.generate(_currentRecord);
+    await PDF.generate(_currentRecord, 'save');
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '📄 Descargar PDF';
+    btn.innerHTML = '⬇️ Descargar PDF';
   }
+}
+
+async function previewCurrentPDF() {
+  if (!_currentRecord) return;
+  await PDF.generate(_currentRecord, 'preview');
 }
 
 // ── Sync ──────────────────────────────────────────────────
