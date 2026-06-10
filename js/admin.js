@@ -1,6 +1,31 @@
 let _currentRecord = null;
 
-document.addEventListener('DOMContentLoaded', () => {
+// ── Password gate ──────────────────────────────────────────
+const ADMIN_HASH = 'cd1a6c7e8d3fdcb0f282c7333ae46d5f3ae2c9090c238e52dcd5e1fcda884925';
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function checkPassword() {
+  if (sessionStorage.getItem('admin_ok') === '1') return true;
+  const pwd = prompt('🔒 Contraseña del panel administrativo:');
+  if (!pwd) { history.back(); return false; }
+  const hash = await sha256(pwd);
+  if (hash === ADMIN_HASH) {
+    sessionStorage.setItem('admin_ok', '1');
+    return true;
+  }
+  alert('Contraseña incorrecta.');
+  history.back();
+  return false;
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const ok = await checkPassword();
+  if (!ok) return;
+
   DB.init();
   setupOnlineStatus();
   populateFormFilter();

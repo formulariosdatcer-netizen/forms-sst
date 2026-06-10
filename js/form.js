@@ -16,7 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   _config = window.SST_FORMS[id];
-  document.getElementById('header-title').textContent = _config.title;
+  const titleEl = document.getElementById('header-title');
+  if (titleEl) titleEl.textContent = _config.title;
   document.getElementById('header-code').textContent = _config.code;
   document.title = _config.code + ' | SST DATCER';
 
