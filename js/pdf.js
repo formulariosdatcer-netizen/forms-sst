@@ -100,99 +100,91 @@ const PDF = {
     const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
-    const M = 15;
+    const M = 10;
     let y;
 
     const form = window.SST_FORMS ? window.SST_FORMS[record.form_id] : null;
     const logo = await this.loadLogo();
 
-    // ── HEADER ──────────────────────────────────────────────
-    // Zona oscura principal (logo + título)
-    const HDR_TOP = 28;
-    doc.setFillColor(35, 35, 35);
-    doc.rect(0, 0, W, HDR_TOP, 'F');
+    // ── HEADER (Excel-style: logo | title | code info) ───────────────
+    const CONTENT_W_H = W - 2 * M;
+    const HDR_Y = 8;
+    const HDR_H = 28;
+    const LOGO_CELL_W = 42;
+    const CODE_CELL_W = 38;
+    const TITLE_CELL_W = CONTENT_W_H - LOGO_CELL_W - CODE_CELL_W;
 
-    // Logo — izquierda, centrado verticalmente
+    // Outer border
+    doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.5);
+    doc.rect(M, HDR_Y, CONTENT_W_H, HDR_H, 'S');
+
+    // Vertical dividers
+    doc.line(M + LOGO_CELL_W, HDR_Y, M + LOGO_CELL_W, HDR_Y + HDR_H);
+    doc.line(M + LOGO_CELL_W + TITLE_CELL_W, HDR_Y, M + LOGO_CELL_W + TITLE_CELL_W, HDR_Y + HDR_H);
+
+    // Logo cell (left)
     if (logo) {
       const lh = 14, lw = lh * 2.8;
-      doc.addImage(logo, 'PNG', 12, (HDR_TOP - lh) / 2, lw, lh);
+      doc.addImage(logo, 'PNG', M + (LOGO_CELL_W - lw) / 2, HDR_Y + (HDR_H - lh) / 2, lw, lh);
     } else {
-      doc.setTextColor(255,255,255); doc.setFont(undefined,'bold'); doc.setFontSize(16);
-      doc.text('DATCER', 14, HDR_TOP / 2 + 3);
+      doc.setTextColor(...this.C.orange); doc.setFont(undefined, 'bold'); doc.setFontSize(14);
+      doc.text('DATCER', M + LOGO_CELL_W / 2, HDR_Y + HDR_H / 2 + 2, { align: 'center' });
     }
 
-    // Línea vertical naranja separadora
-    doc.setDrawColor(232,119,34); doc.setLineWidth(0.6);
-    doc.line(62, 5, 62, HDR_TOP - 5);
+    // Title cell (center)
+    const titleCellX = M + LOGO_CELL_W;
+    const formTitle = (form ? form.title : record.form_id).toUpperCase();
+    doc.setTextColor(0, 0, 0); doc.setFont(undefined, 'bold'); doc.setFontSize(11);
+    const hdrTitleLines = doc.splitTextToSize(formTitle, TITLE_CELL_W - 8);
+    const hdrTitleBlockH = hdrTitleLines.length * 5.5;
+    let hdrTy = HDR_Y + (HDR_H - hdrTitleBlockH) / 2 + 4.5;
+    hdrTitleLines.forEach(line => { doc.text(line, titleCellX + TITLE_CELL_W / 2, hdrTy, { align: 'center' }); hdrTy += 5.5; });
 
-    // Título del formulario — derecha, centrado vertical
-    const title = form ? form.title : record.form_id;
-    doc.setTextColor(255,255,255); doc.setFont(undefined,'bold'); doc.setFontSize(12);
-    const titleLines = doc.splitTextToSize(title, W - 76);
-    const titleBlockH = titleLines.length * 5.5;
-    let ty = (HDR_TOP - titleBlockH) / 2 + 4.5;
-    titleLines.forEach(line => { doc.text(line, W - 12, ty, { align:'right' }); ty += 5.5; });
-
-    // Barra naranja inferior con metadatos
-    const META_H = 8;
-    doc.setFillColor(232,119,34);
-    doc.rect(0, HDR_TOP, W, META_H, 'F');
-
-    // Metadatos en la barra naranja
+    // Code cell (right)
+    const codeCellX = M + LOGO_CELL_W + TITLE_CELL_W;
     const metaCode = form ? form.code : '';
-    const metaVer  = form ? `v${form.version}` : '';
+    const metaVer  = form ? String(form.version) : '01';
     const metaDate = this.formatDate(record.created_at);
-    doc.setTextColor(255,255,255); doc.setFont(undefined,'bold'); doc.setFontSize(7);
-    doc.text(metaCode, 12, HDR_TOP + META_H / 2 + 1.2);
-    doc.setFont(undefined,'normal'); doc.setFontSize(6.5);
-    doc.text([metaVer, metaDate].filter(Boolean).join('   ·   '), W - 12, HDR_TOP + META_H / 2 + 1.2, { align:'right' });
+    let codeCy = HDR_Y + (HDR_H - 14) / 2 + 4.5;
+    doc.setFontSize(7.5); doc.setTextColor(0, 0, 0);
+    doc.setFont(undefined, 'bold');
+    if (metaCode) { doc.text(`Código: ${metaCode}`, codeCellX + CODE_CELL_W / 2, codeCy, { align: 'center' }); codeCy += 4.8; }
+    doc.text(`Versión:  ${metaVer}`, codeCellX + CODE_CELL_W / 2, codeCy, { align: 'center' }); codeCy += 4.8;
+    doc.setFont(undefined, 'normal');
+    doc.text(`Fecha: ${metaDate}`, codeCellX + CODE_CELL_W / 2, codeCy, { align: 'center' });
 
-    const HDR = HDR_TOP + META_H;
-    y = HDR + 10;
+    y = HDR_Y + HDR_H + 4;
 
-    // ── WORKER INFO BOX ──────────────────────────────────────
-    const BOX_H = 30;
-    // White box with light border
-    doc.setFillColor(255, 255, 255);
-    doc.setDrawColor(...this.C.boxBorder);
-    doc.setLineWidth(0.5);
-    doc.roundedRect(M, y, W - 2 * M, BOX_H, 3, 3, 'FD');
+    // ── WORKER INFO (2×3 grid of form cells) ─────────────────────────
+    const WI_CELL_H = 11;
+    const WI_COL_W = (W - 2 * M) / 3;
 
-    // Left orange filled stripe (4mm)
-    doc.setFillColor(...this.C.orange);
-    doc.roundedRect(M, y, 4, BOX_H, 3, 3, 'F');
-    // square off the right edge of the stripe so it reads as a band
-    doc.rect(M + 2, y, 2, BOX_H, 'F');
+    const wiFields = [
+      ['TRABAJADOR', `${record.worker_name || ''} ${record.worker_lastname || ''}`.trim() || '—'],
+      ['CÉDULA',     record.worker_doc || '—'],
+      ['CARGO',      record.worker_role || '—'],
+      ['EMPRESA',    record.worker_company || '—'],
+      ['FECHA',      this.formatDate(record.created_at)],
+      ['ESTADO',     record.synced ? 'Sincronizado' : 'Pendiente']
+    ];
 
-    const lbl = (t, x, yy) => {
-      doc.setFont(undefined, 'bold'); doc.setTextColor(...this.C.orange); doc.setFontSize(6);
-      doc.text(t.toUpperCase(), x, yy);
-    };
-    const val = (t, x, yy, maxW) => {
-      doc.setFont(undefined, 'normal'); doc.setTextColor(...this.C.ink); doc.setFontSize(9);
-      const lines = doc.splitTextToSize(String(t || '—'), maxW || 60);
-      doc.text(lines[0], x, yy);
-    };
+    wiFields.forEach((f, idx) => {
+      const row  = Math.floor(idx / 3);
+      const colI = idx % 3;
+      const cx   = M + colI * WI_COL_W;
+      const cy2  = y + row * WI_CELL_H;
+      doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.3);
+      doc.rect(cx, cy2, WI_COL_W, WI_CELL_H, 'S');
+      doc.setFillColor(220, 220, 220);
+      doc.rect(cx, cy2, WI_COL_W, 4, 'F');
+      doc.setTextColor(50, 50, 50); doc.setFont(undefined, 'bold'); doc.setFontSize(5.5);
+      doc.text(f[0], cx + 2, cy2 + 2.9);
+      doc.setTextColor(0, 0, 0); doc.setFont(undefined, 'normal'); doc.setFontSize(8);
+      const vStr = doc.splitTextToSize(String(f[1]), WI_COL_W - 4)[0];
+      doc.text(vStr, cx + 2, cy2 + WI_CELL_H - 2.2);
+    });
 
-    const innerX = M + 4 + 8;        // stripe (4) + left padding (8)
-    const colW = (W - 2 * M - 12) / 2;
-    const c1 = innerX;
-    const c2 = innerX + colW;
-    const topY = y + 6;
-    const rowGap = 8;
-    const valDy = 3.4;               // distance from label baseline to value baseline
-
-    // Left column
-    lbl('Trabajador', c1, topY);                 val(`${record.worker_name || ''} ${record.worker_lastname || ''}`.trim(), c1, topY + valDy, colW - 8);
-    lbl('Cédula',     c1, topY + rowGap);         val(record.worker_doc, c1, topY + rowGap + valDy, colW - 8);
-    lbl('Cargo',      c1, topY + rowGap * 2);     val(record.worker_role, c1, topY + rowGap * 2 + valDy, colW - 8);
-
-    // Right column
-    lbl('Empresa',    c2, topY);                  val(record.worker_company, c2, topY + valDy, colW - 8);
-    lbl('Fecha',      c2, topY + rowGap);         val(this.formatDate(record.created_at), c2, topY + rowGap + valDy, colW - 8);
-    lbl('Estado',     c2, topY + rowGap * 2);     val(record.synced ? 'Sincronizado' : 'Pendiente', c2, topY + rowGap * 2 + valDy, colW - 8);
-
-    y += BOX_H + 8;
+    y += 2 * WI_CELL_H + 4;
 
     const formCode = form ? form.code : record.form_id;
 
@@ -226,8 +218,10 @@ const PDF = {
 
     // Section header — orange bar, 8mm, white bold uppercase
     y = this.needPage(doc, y, 8 + 14, H, M);
-    doc.setFillColor(232, 119, 34);
+    doc.setFillColor(30, 30, 30);
     doc.rect(M, y, CONTENT_W, 8, 'F');
+    doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.3);
+    doc.rect(M, y, CONTENT_W, 8, 'S');
     doc.setTextColor(255, 255, 255);
     doc.setFont(undefined, 'bold'); doc.setFontSize(8);
     doc.text(String(section.title || '').toUpperCase(), M + 3, y + 5.4);
