@@ -106,60 +106,61 @@ const PDF = {
     const form = window.SST_FORMS ? window.SST_FORMS[record.form_id] : null;
     const logo = await this.loadLogo();
 
-    // ── HEADER (full width, 40mm) ────────────────────────────
-    const HDR = 40;
+    // ── HEADER premium (42mm) ───────────────────────────────
+    const HDR = 42;
+    const zone1W = 72;
+    const bandW  = 6;
 
-    // Dark background
-    doc.setFillColor(...this.C.headerBg);
-    doc.rect(0, 0, W, HDR, 'F');
-
-    // Left orange accent stripe (5mm)
+    // Zone 1: solid orange logo area
     doc.setFillColor(...this.C.orange);
-    doc.rect(0, 0, 5, HDR, 'F');
+    doc.rect(0, 0, zone1W, HDR, 'F');
 
-    // Logo (height 18mm, 3:1 ratio = 54mm wide), vertically centered
-    if (logo) {
-      const logoH = 18;
-      const logoW = logoH * 3;
-      doc.addImage(logo, 'PNG', 10, (HDR - logoH) / 2, logoW, logoH);
-    } else {
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(22); doc.setFont(undefined, 'bold');
-      doc.text('DATCER', 10, HDR / 2 + 3);
+    // Subtle diagonal texture lines
+    doc.setDrawColor(210, 105, 25);
+    doc.setLineWidth(0.3);
+    for (let x = -HDR; x < zone1W - bandW; x += 10) {
+      doc.line(x, HDR, x + HDR, 0);
     }
 
-    // Thin vertical separator at x=68
-    doc.setDrawColor(...this.C.headerSep);
-    doc.setLineWidth(0.3);
-    doc.line(68, 7, 68, HDR - 7);
+    // Right-edge dark orange band (depth effect)
+    doc.setFillColor(...this.C.orangeDk);
+    doc.rect(zone1W - bandW, 0, bandW, HDR, 'F');
 
-    // Right side: title + meta (from x=72 to W-14)
-    const rightX = W - 14;
+    // Logo centered in Zone 1
+    if (logo) {
+      const logoH = 16, logoW = 45;
+      const usableW = zone1W - bandW;
+      doc.addImage(logo, 'PNG', (usableW - logoW) / 2, (HDR - logoH) / 2, logoW, logoH);
+    } else {
+      doc.setFont(undefined, 'bold'); doc.setFontSize(20); doc.setTextColor(255, 255, 255);
+      doc.text('DATCER', (zone1W - bandW) / 2, HDR / 2, { align: 'center', baseline: 'middle' });
+    }
+
+    // Zone 2: very dark background
+    doc.setFillColor(26, 26, 26);
+    doc.rect(zone1W, 0, W - zone1W, HDR, 'F');
+
+    // Form title (right-aligned, white, bold)
     const title = form ? form.title : record.form_id;
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(13); doc.setFont(undefined, 'bold');
-    const titleLines = doc.splitTextToSize(title, rightX - 72);
+    doc.setFont(undefined, 'bold'); doc.setFontSize(13); doc.setTextColor(255, 255, 255);
+    const titleLines = doc.splitTextToSize(String(title).toUpperCase(), (W - 15) - (zone1W + 4));
+    let ty = 11;
+    titleLines.forEach(line => { doc.text(line, W - 15, ty, { align: 'right' }); ty += 5.5; });
 
-    // Vertically center the title+meta block
-    const lineH = 5.4;
-    const metaGap = 5;
-    const blockH = titleLines.length * lineH + metaGap;
-    let ty = (HDR - blockH) / 2 + lineH - 1.5;
-    doc.text(titleLines, rightX, ty, { align: 'right' });
+    // Thin orange accent line above meta
+    doc.setDrawColor(...this.C.orange); doc.setLineWidth(1);
+    doc.line(zone1W, HDR - 8, W, HDR - 8);
 
-    // Meta line below title
-    const meta = form
-      ? `${form.code}   ·   v${form.version}   ·   ${this.formatDate(record.created_at)}`
-      : this.formatDate(record.created_at);
-    doc.setFontSize(7); doc.setFont(undefined, 'normal');
-    doc.setTextColor(...this.C.subText);
-    doc.text(meta, rightX, ty + (titleLines.length - 1) * lineH + metaGap, { align: 'right' });
+    // Meta: code · version · date
+    doc.setFont(undefined, 'normal'); doc.setFontSize(7); doc.setTextColor(...this.C.subText);
+    const metaParts = [form ? form.code : '', form ? `v${form.version}` : '', this.formatDate(record.created_at)].filter(Boolean);
+    doc.text(metaParts.join('   ·   '), W - 15, HDR - 3.5, { align: 'right' });
 
-    // Bottom orange bar (3mm)
-    doc.setFillColor(...this.C.orange);
-    doc.rect(0, HDR, W, 3, 'F');
+    // Layered bottom bars
+    doc.setFillColor(...this.C.orange);  doc.rect(0, HDR,       W, 2.5, 'F');
+    doc.setFillColor(...this.C.orangeDk); doc.rect(0, HDR + 2.5, W, 2,   'F');
 
-    y = HDR + 3 + 8;
+    y = HDR + 12.5;
 
     // ── WORKER INFO BOX ──────────────────────────────────────
     const BOX_H = 30;
