@@ -189,7 +189,10 @@ const PDF = {
     const formCode = form ? form.code : record.form_id;
 
     // ── SECTIONS ─────────────────────────────────────────────
-    if (form && form.sections && record.form_data) {
+    const customRenderer = window.PDF_FORMS && window.PDF_FORMS[record.form_id];
+    if (customRenderer && record.form_data) {
+      y = customRenderer(doc, record, record.form_data, y, M, W, H, this);
+    } else if (form && form.sections && record.form_data) {
       for (const section of form.sections) {
         y = this.renderSection(doc, section, record.form_data, y, M, W, H);
       }

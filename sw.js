@@ -1,4 +1,4 @@
-const CACHE = 'sst-datcer-v6';
+const CACHE = 'sst-datcer-v7';
 
 const ASSETS = [
   './index.html',
@@ -12,6 +12,7 @@ const ASSETS = [
   './js/form.js',
   './js/admin.js',
   './js/pdf.js',
+  './js/pdf-forms.js',
   './js/forms/fr-sst-36.js',
   './js/forms/fr-sst-37.js',
   './js/forms/fr-sst-38.js',
