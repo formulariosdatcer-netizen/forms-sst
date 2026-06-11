@@ -208,16 +208,70 @@ const PDF = {
     }
   },
 
+  // ── REGULAR FIELDS TABLE ───────────────────────────────────
+  // Renders a stack of label/value rows as a 2-column grid table
+  // (label = gray bold left col, value = white right col).
+  renderRegularTable(doc, fields, data, y, M, W, H) {
+    const CONTENT_W = W - 2 * M;
+    const LABEL_W = 65;
+    const VALUE_W = CONTENT_W - LABEL_W;
+
+    const body = fields.map(f => {
+      const raw = data[f.id];
+      let val;
+      if (raw === undefined || raw === null || raw === '') {
+        val = '';
+      } else if (typeof raw === 'object') {
+        val = JSON.stringify(raw);
+      } else {
+        val = String(raw);
+      }
+      return [String(f.label || ''), val];
+    });
+
+    y = this.needPage(doc, y, body.length * 8 + 2, H, M);
+
+    doc.autoTable({
+      body,
+      startY: y,
+      margin: { left: M, right: M },
+      theme: 'grid',
+      styles: {
+        lineWidth: 0.3,
+        lineColor: [180, 180, 180],
+        cellPadding: { top: 2.8, bottom: 2.8, left: 3, right: 3 },
+        fontSize: 8.5,
+        overflow: 'linebreak',
+        valign: 'middle'
+      },
+      columnStyles: {
+        0: {
+          cellWidth: LABEL_W,
+          fontStyle: 'bold',
+          textColor: [40, 40, 40],
+          fillColor: [242, 242, 242]
+        },
+        1: {
+          cellWidth: VALUE_W,
+          fontStyle: 'normal',
+          textColor: [10, 10, 10],
+          fillColor: [255, 255, 255]
+        }
+      }
+    });
+
+    return doc.lastAutoTable.finalY + 2;
+  },
+
   // ── SECTION RENDERER ───────────────────────────────────────
-  // Draws an orange section header, then lays out fields in a
-  // 2-column grid of bordered cells. Wide field types (textarea,
+  // Draws a section header, then groups consecutive regular fields
+  // into a 2-column label/value table. Wide field types (textarea,
   // sino, table, checkgroup) span the full content width.
   renderSection(doc, section, data, y, M, W, H) {
     const CONTENT_W = W - 2 * M;
-    const COL_W = CONTENT_W / 2;
 
-    // Section header — orange bar, 8mm, white bold uppercase
-    y = this.needPage(doc, y, 8 + 14, H, M);
+    // Section header: dark bar, white bold uppercase
+    y = this.needPage(doc, y, 10 + 8, H, M);
     doc.setFillColor(30, 30, 30);
     doc.rect(M, y, CONTENT_W, 8, 'F');
     doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.3);
@@ -227,53 +281,25 @@ const PDF = {
     doc.text(String(section.title || '').toUpperCase(), M + 3, y + 5.4);
     y += 8;
 
-    const isWide = (t) => t === 'textarea' || t === 'sino' || t === 'table' || t === 'checkgroup';
-
-    let col = 0; // 0 = left column, 1 = right column
+    const WIDE_TYPES = ['textarea', 'sino', 'table', 'checkgroup'];
     const fields = section.fields || [];
+    let pending = [];
+
+    const flushPending = () => {
+      if (!pending.length) return;
+      y = this.renderRegularTable(doc, pending, data, y, M, W, H);
+      pending = [];
+    };
 
     for (const field of fields) {
-      const wide = isWide(field.type);
-
-      if (wide) {
-        // If mid-row (sitting in the right column), close the row first
-        // with an empty filler cell so the wide field starts clean.
-        if (col === 1) {
-          this.drawFieldCell(doc, M + COL_W, y, COL_W, 14, '', '');
-          y += 14;
-          col = 0;
-        }
+      if (WIDE_TYPES.includes(field.type)) {
+        flushPending();
         y = this.renderField(doc, field, data, y, M, W, H);
-        col = 0;
-        continue;
-      }
-
-      // Standard 2-column cell field
-      if (!field.label && field.type !== 'radio') continue;
-
-      const CELL_H = 14;
-      if (col === 0) {
-        y = this.needPage(doc, y, CELL_H, H, M);
-      }
-      const x = M + col * COL_W;
-      const raw = data[field.id];
-      const valStr = (raw !== undefined && raw !== null && raw !== '')
-        ? String(raw) : '—';
-      this.drawFieldCell(doc, x, y, COL_W, CELL_H, field.label || '', valStr, false);
-
-      if (col === 0) {
-        col = 1;
       } else {
-        col = 0;
-        y += CELL_H;
+        if (field.label) pending.push(field);
       }
     }
-
-    // Close a dangling half-row with a filler cell
-    if (col === 1) {
-      this.drawFieldCell(doc, M + COL_W, y, COL_W, 14, '', '');
-      y += 14;
-    }
+    flushPending();
 
     return y + 4;
   },
@@ -322,9 +348,9 @@ const PDF = {
 
       case 'textarea': {
         if (!field.label) return y;
+        const str = (val !== undefined && val !== null && val !== '') ? String(val) : '';
         const CELL_H = 22;
         y = this.needPage(doc, y, CELL_H, H, M);
-        const str = (val !== undefined && val !== null && val !== '') ? String(val) : '—';
         this.drawFieldCell(doc, M, y, CONTENT_W, CELL_H, field.label, str, true);
         y += CELL_H;
         break;
@@ -335,28 +361,23 @@ const PDF = {
         const rowH = 5;
         const bodyH = sel.length ? sel.length * rowH + 3 : 9;
         const CELL_H = Math.max(14, 5 + bodyH);
-
         y = this.needPage(doc, y, CELL_H, H, M);
-
-        // Border + label strip
-        doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.3);
+        doc.setDrawColor(180, 180, 180); doc.setLineWidth(0.3);
         doc.rect(M, y, CONTENT_W, CELL_H, 'S');
-        doc.setFillColor(245, 245, 245);
+        doc.setFillColor(242, 242, 242);
         doc.rect(M, y, CONTENT_W, 5, 'F');
-        doc.setTextColor(100, 100, 100); doc.setFont(undefined, 'normal'); doc.setFontSize(6);
+        doc.setTextColor(40, 40, 40); doc.setFont(undefined, 'bold'); doc.setFontSize(6);
         doc.text(String(field.label || '').toUpperCase(), M + 2, y + 3.5);
-
         let iy = y + 5 + 4;
         if (!sel.length) {
           doc.setFont(undefined, 'italic'); doc.setFontSize(8); doc.setTextColor(...C.neutral);
           doc.text('Ninguno seleccionado', M + 4, iy);
         } else {
           sel.forEach(item => {
-            doc.setFillColor(232, 119, 34);
+            doc.setFillColor(...C.orange);
             doc.circle(M + 4, iy - 1, 0.9, 'F');
             doc.setFont(undefined, 'normal'); doc.setFontSize(8); doc.setTextColor(20, 20, 20);
-            const line = doc.splitTextToSize(String(item), CONTENT_W - 12)[0];
-            doc.text(line, M + 7, iy);
+            doc.text(doc.splitTextToSize(String(item), CONTENT_W - 12)[0], M + 7, iy);
             iy += rowH;
           });
         }
@@ -368,9 +389,18 @@ const PDF = {
         const items = (val && typeof val === 'object') ? val : {};
         const rows = (field.items || []).map((item, i) => [String(i + 1), item, items[i] || '—']);
         if (!rows.length) return y;
-        y = this.needPage(doc, y, 18, H, M);
 
-        const startY = y;
+        if (field.label) {
+          y = this.needPage(doc, y, 7, H, M);
+          doc.setFillColor(70, 70, 70);
+          doc.rect(M, y, CONTENT_W, 6, 'F');
+          doc.setTextColor(255, 255, 255); doc.setFont(undefined, 'bold'); doc.setFontSize(7);
+          doc.text(String(field.label).toUpperCase(), M + 3, y + 4.2);
+          y += 6;
+        }
+
+        y = this.needPage(doc, y, 18, H, M);
+        const sinoStartY = y;
         doc.autoTable({
           head: [['#', 'Condición / Verificación', 'Resp.']],
           body: rows,
@@ -395,51 +425,77 @@ const PDF = {
             }
             if (d.column.index === 2 && d.section === 'body') {
               const v = (d.cell.text[0] || '').toUpperCase();
-              if (v === 'SI' || v === 'SÍ') { d.cell.styles.textColor = [27, 94, 32];  d.cell.styles.fillColor = [232, 245, 233]; }
-              else if (v === 'NO')          { d.cell.styles.textColor = [183, 28, 28];  d.cell.styles.fillColor = [255, 235, 238]; }
-              else                          { d.cell.styles.textColor = C.neutral;       d.cell.styles.fontStyle = 'normal'; }
+              if (v === 'SI' || v === 'SÍ')  { d.cell.styles.textColor = [27, 94, 32];  d.cell.styles.fillColor = [232, 245, 233]; }
+              else if (v === 'NO')           { d.cell.styles.textColor = [183, 28, 28]; d.cell.styles.fillColor = [255, 235, 238]; }
+              else                           { d.cell.styles.textColor = C.neutral; d.cell.styles.fontStyle = 'normal'; }
             }
           }
         });
-        const endY = doc.lastAutoTable.finalY;
-        // Outer border around the whole table
-        doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.3);
-        doc.rect(M, startY, CONTENT_W, endY - startY, 'S');
-        y = endY + 6;
+        const sinoEndY = doc.lastAutoTable.finalY;
+        doc.setDrawColor(180, 180, 180); doc.setLineWidth(0.3);
+        doc.rect(M, sinoStartY, CONTENT_W, sinoEndY - sinoStartY, 'S');
+        y = sinoEndY + 4;
         break;
       }
 
       case 'table': {
         const rows = Array.isArray(val) ? val : [];
         const cols = field.columns || [];
-        if (!rows.length || !cols.length) return y;
+        if (!cols.length) return y;
+
+        if (field.label) {
+          y = this.needPage(doc, y, 7, H, M);
+          doc.setFillColor(70, 70, 70);
+          doc.rect(M, y, CONTENT_W, 6, 'F');
+          doc.setTextColor(255, 255, 255); doc.setFont(undefined, 'bold'); doc.setFontSize(7);
+          doc.text(String(field.label).toUpperCase(), M + 3, y + 4.2);
+          y += 6;
+        }
 
         const headers = cols.map(c => c.label);
-        const body = rows.map(row =>
+        const dataRows = rows.map(row =>
           cols.map(c => {
             const v = row[c.id];
-            return v !== undefined && v !== null ? String(v) : '';
+            return (v !== undefined && v !== null) ? String(v) : '';
           })
         );
+
+        // Always show at least 8 empty rows to match original Excel form appearance
+        const MIN_ROWS = 8;
+        const emptyRow = cols.map(() => '');
+        while (dataRows.length < MIN_ROWS) dataRows.push([...emptyRow]);
+
         const colStyles = {};
         cols.forEach((c, i) => {
           if (c.type === 'bc')          colStyles[i] = { cellWidth: 12, halign: 'center', fontStyle: 'bold' };
-          else if (c.type === 'number') colStyles[i] = { cellWidth: 16, halign: 'right' };
-          else if (c.type === 'date')   colStyles[i] = { cellWidth: 22, halign: 'center' };
+          else if (c.type === 'number') colStyles[i] = { cellWidth: 18, halign: 'right' };
+          else if (c.type === 'date')   colStyles[i] = { cellWidth: 24, halign: 'center' };
         });
 
-        y = this.needPage(doc, y, 18, H, M);
-        const startY = y;
+        y = this.needPage(doc, y, 22, H, M);
+        const tblStartY = y;
         doc.autoTable({
-          head: [headers], body,
-          startY: y, margin: { left: M, right: M }, theme: 'grid',
-          styles: { lineWidth: 0.1, lineColor: [225, 225, 225] },
-          headStyles: {
-            fillColor: [50, 50, 50], textColor: [255, 255, 255],
-            fontSize: 7, fontStyle: 'bold',
-            cellPadding: { top: 2.8, bottom: 2.8, left: 2.5, right: 2.5 }
+          head: [headers],
+          body: dataRows,
+          startY: y,
+          margin: { left: M, right: M },
+          theme: 'grid',
+          styles: {
+            lineWidth: 0.3,
+            lineColor: [180, 180, 180],
+            overflow: 'linebreak'
           },
-          bodyStyles: { fontSize: 7, textColor: C.ink, cellPadding: 2.5, fillColor: [255, 255, 255] },
+          headStyles: {
+            fillColor: [30, 30, 30], textColor: [255, 255, 255],
+            fontSize: 7.5, fontStyle: 'bold',
+            cellPadding: { top: 3, bottom: 3, left: 2.5, right: 2.5 }
+          },
+          bodyStyles: {
+            fontSize: 8, textColor: C.ink,
+            cellPadding: { top: 2.5, bottom: 2.5, left: 2.5, right: 2.5 },
+            fillColor: [255, 255, 255],
+            minCellHeight: 8
+          },
           alternateRowStyles: { fillColor: [250, 250, 250] },
           columnStyles: colStyles,
           didParseCell: (d) => {
@@ -451,19 +507,18 @@ const PDF = {
             }
           }
         });
-        const endY = doc.lastAutoTable.finalY;
-        doc.setDrawColor(200, 200, 200); doc.setLineWidth(0.3);
-        doc.rect(M, startY, CONTENT_W, endY - startY, 'S');
-        y = endY + 6;
+        const tblEndY = doc.lastAutoTable.finalY;
+        doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.4);
+        doc.rect(M, tblStartY, CONTENT_W, tblEndY - tblStartY, 'S');
+        y = tblEndY + 4;
         break;
       }
 
       default: {
-        // Fallback for any unexpected single-value field: a full-width cell.
         if (!field.label) return y;
+        const str = (val !== undefined && val !== null && val !== '') ? String(val) : '';
         const CELL_H = 14;
         y = this.needPage(doc, y, CELL_H, H, M);
-        const str = (val !== undefined && val !== null && val !== '') ? String(val) : '—';
         this.drawFieldCell(doc, M, y, CONTENT_W, CELL_H, field.label, str, false);
         y += CELL_H;
         break;
