@@ -2186,9 +2186,41 @@ document.getElementById('btn-clear').addEventListener('click',()=>{
 window.addEventListener('pagehide', saveAll);
 window.addEventListener('beforeunload', saveAll);
 
+/* ─── INIT ─── */
+buildDayThs('36-days-m');
+buildDayThs('36-days-e');
+build36Table('36-tbody-m', D36_MENORES, 'M', '🔧  HERRAMIENTAS MENORES');
+build36Table('36-tbody-e', D36_ELEC,    'E', '⚡  HERRAMIENTAS ELÉCTRICAS');
+build37Table();
+build38Table();
+build39Table();
+build40Table();
+build41Table();
+build42Section('42a-tbody', D42A, '42a', '42a-score');
+build42Section('42b-tbody', D42B, '42b', '42b-score');
+build43Table();
+loadForm36();
+loadForm37();
+loadForm38();
+loadForm39();
+loadForm40();
+loadForm41();
+loadForm42();
+loadForm43();
+
+// Mes por defecto
+const hoy = new Date();
+const mesStr = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
+if(!document.getElementById('36-mes').value) document.getElementById('36-mes').value = mesStr;
+if(!document.getElementById('37-mes').value) document.getElementById('37-mes').value = mesStr;
+if(!document.getElementById('39-mes').value) document.getElementById('39-mes').value = mesStr;
+
+const hasSaved = ['fr-sst-36','fr-sst-37','fr-sst-38','fr-sst-39','fr-sst-40','fr-sst-41','fr-sst-42','fr-sst-43'].some(c=>Object.keys(getState(c)).length>0);
+if(hasSaved){ document.getElementById('savestate').textContent='borrador cargado'; document.getElementById('savestate').classList.add('ok'); }
+
 /* ─── PWA INTEGRATION ───────────────────────────────────────
    Activado cuando admin.js abre esta página con ?pwa=1
-   El registro completo llega en localStorage['sst_preview_record']
+   Debe correr DESPUÉS de build43Table() y demás inits.
 ──────────────────────────────────────────────────────────── */
 (function(){
   const params = new URLSearchParams(location.search);
@@ -2231,31 +2263,51 @@ window.addEventListener('beforeunload', saveAll);
                     : tipoDoc === 'uso'         ? 'NO USADO'
                     :                             'NO RECIBIDO';
 
-    // Table rows: fill each entrega
-    const entregas = Array.isArray(d.entregas) ? d.entregas : [];
-    const tbody43  = document.getElementById('43-tbody');
-    entregas.forEach((e, i) => {
-      const tr = tbody43.rows[i];
-      if (!tr) return;
-      const gi = ci => tr.cells[ci] ? tr.cells[ci].querySelector('input') : null;
-      if (gi(0)) gi(0).value = e.fecha    || '';
-      if (gi(1)) gi(1).value = e.epp      || '';
-      if (gi(2)) gi(2).value = e.cantidad || '';
+    // Table rows — rebuild tbody with real data (20 rows total)
+    const entregas  = Array.isArray(d.entregas) ? d.entregas : [];
+    const tbody43   = document.getElementById('43-tbody');
+    tbody43.innerHTML = '';
+    for (let ri = 0; ri < 20; ri++) {
+      const e   = entregas[ri] || {};
+      const isNeg = ri < entregas.length && (
+        tipoDoc === 'devolucion' ? e.estado_devolucion === 'no_devuelto'
+        : tipoDoc === 'uso'     ? e.estado_uso         === 'no_usado'
+        :                         e.estado_recepcion   === 'no_recibido'
+      );
 
-      const isNeg = tipoDoc === 'devolucion' ? e.estado_devolucion === 'no_devuelto'
-                  : tipoDoc === 'uso'         ? e.estado_uso        === 'no_usado'
-                  :                             e.estado_recepcion  === 'no_recibido';
+      const tr = tbody43.insertRow();
 
-      const obsInp = gi(3);
-      if (obsInp) {
-        obsInp.value = isNeg ? noTexto : (firmaName || '');
-        if (isNeg) {
-          obsInp.style.color = 'var(--err)';
-          obsInp.style.fontWeight = '700';
-          if (tr.cells[3]) tr.cells[3].style.background = 'var(--err-bg)';
-        }
-      }
-    });
+      // Fecha
+      const tdF = tr.insertCell(); tdF.className = 'tc-venc';
+      const fInp = document.createElement('input'); fInp.type = 'date';
+      fInp.value = e.fecha || '';
+      fInp.style.cssText = 'width:100%;border:none;outline:none;background:transparent;font-size:10px;color:var(--txt);font-family:inherit;cursor:pointer';
+      tdF.appendChild(fInp);
+
+      // EPP
+      const tdE = tr.insertCell(); tdE.className = 'tc-asp';
+      const eInp = document.createElement('input'); eInp.type = 'text';
+      eInp.value = e.epp || '';
+      eInp.placeholder = 'Elemento de protección o dotación...';
+      eInp.style.cssText = 'width:100%;border:none;outline:none;background:transparent;font-size:11px;font-family:inherit';
+      tdE.appendChild(eInp);
+
+      // Cantidad
+      const tdC = tr.insertCell(); tdC.className = 'tc-cant-s';
+      const cInp = document.createElement('input'); cInp.type = 'number';
+      cInp.value = e.cantidad || '';
+      cInp.style.cssText = 'width:100%;border:none;outline:none;background:transparent;font-size:11px;text-align:center;font-family:"JetBrains Mono",monospace';
+      tdC.appendChild(cInp);
+
+      // Firma / estado
+      const tdS = tr.insertCell();
+      tdS.style.cssText = 'padding:4px 8px;border-bottom:.5px solid var(--line)' + (isNeg ? ';background:var(--err-bg)' : '');
+      const sInp = document.createElement('input'); sInp.type = 'text';
+      sInp.value = ri < entregas.length ? (isNeg ? noTexto : (firmaName || '')) : '';
+      sInp.style.cssText = 'width:100%;border:none;outline:none;background:transparent;font-size:10px;font-family:inherit'
+        + (isNeg ? ';color:var(--err);font-weight:700' : ';color:var(--txt3)');
+      tdS.appendChild(sInp);
+    }
 
     // Adjust FIRMA column header and badge for devolución / uso
     if (tipoDoc !== 'entrega') {
@@ -2279,8 +2331,8 @@ window.addEventListener('beforeunload', saveAll);
       if (lbl) lbl.textContent = tipoDoc === 'devolucion' ? 'Firma — quien recibe devolución'
                                 : tipoDoc === 'uso'         ? 'Firma — quien autoriza uso en obra'
                                 :                             'Firma del Trabajador';
-      const p  = firmaBox.querySelector('p');   if (p)  p.remove();
-      const fl = firmaBox.querySelector('.firma-line'); if (fl) fl.remove();
+      const p  = firmaBox.querySelector('p');             if (p)  p.remove();
+      const fl = firmaBox.querySelector('.firma-line');   if (fl) fl.remove();
 
       if (firmaImg) {
         const img = document.createElement('img');
@@ -2313,38 +2365,6 @@ window.addEventListener('beforeunload', saveAll);
     setTimeout(() => window.print(), 700);
   }
 })();
-
-/* ─── INIT ─── */
-buildDayThs('36-days-m');
-buildDayThs('36-days-e');
-build36Table('36-tbody-m', D36_MENORES, 'M', '🔧  HERRAMIENTAS MENORES');
-build36Table('36-tbody-e', D36_ELEC,    'E', '⚡  HERRAMIENTAS ELÉCTRICAS');
-build37Table();
-build38Table();
-build39Table();
-build40Table();
-build41Table();
-build42Section('42a-tbody', D42A, '42a', '42a-score');
-build42Section('42b-tbody', D42B, '42b', '42b-score');
-build43Table();
-loadForm36();
-loadForm37();
-loadForm38();
-loadForm39();
-loadForm40();
-loadForm41();
-loadForm42();
-loadForm43();
-
-// Mes por defecto
-const hoy = new Date();
-const mesStr = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
-if(!document.getElementById('36-mes').value) document.getElementById('36-mes').value = mesStr;
-if(!document.getElementById('37-mes').value) document.getElementById('37-mes').value = mesStr;
-if(!document.getElementById('39-mes').value) document.getElementById('39-mes').value = mesStr;
-
-const hasSaved = ['fr-sst-36','fr-sst-37','fr-sst-38','fr-sst-39','fr-sst-40','fr-sst-41','fr-sst-42','fr-sst-43'].some(c=>Object.keys(getState(c)).length>0);
-if(hasSaved){ document.getElementById('savestate').textContent='borrador cargado'; document.getElementById('savestate').classList.add('ok'); }
 </script>
 </body>
 </html>
