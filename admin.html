@@ -73,6 +73,21 @@
     </div>
   </div>
 
+  <!-- Modal edición -->
+  <div class="modal-overlay" id="edit-modal" onclick="closeEditModal(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title" id="edit-modal-title">Editar registro</span>
+        <button class="modal-close" onclick="closeEditModal()">✕</button>
+      </div>
+      <div class="modal-body" id="edit-modal-body"></div>
+      <div class="modal-footer" style="display:flex;gap:8px">
+        <button class="btn btn-secondary" style="flex:1" onclick="closeEditModal()">Cancelar</button>
+        <button class="btn btn-primary" style="flex:2" id="save-edit-btn" onclick="saveCurrentEdit()">💾 Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <!-- Scripts -->

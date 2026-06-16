@@ -144,6 +144,16 @@ const DB = {
     this.saveQueue(queue);
   },
 
+  async updateRecord(id, changes) {
+    if (this.supabase) {
+      try {
+        await this.supabase.from('submissions').update(changes).eq('id', id);
+      } catch {}
+    }
+    const queue = this.getQueue().map(r => r.id === id ? { ...r, ...changes } : r);
+    this.saveQueue(queue);
+  },
+
   async fetchByPin(pin) {
     if (!this.supabase) return null;
     try {

@@ -129,6 +129,7 @@ function _buildCardHtml(r, i) {
         </div>
         <div class="submission-actions">
           <button class="submission-btn" onclick="openDetail(${i})">👁 Ver detalle</button>
+          <button class="submission-btn" onclick="openEdit(${i})">✏️ Editar</button>
           <button class="submission-btn" onclick="previewPDF(${i})">🔍 Vista previa</button>
           <button class="submission-btn pdf-btn" onclick="downloadPDF(${i})">⬇️ PDF</button>
           ${acciones43}
@@ -645,4 +646,296 @@ async function _mConfirmar() {
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Guardando...'; }
   try { await _mOnConfirm({ nombre, sigImg: sig, itemEstados: [..._mItemEstados] }); }
   finally { _mCerrar(); }
+}
+
+// ── EDIT RECORD ───────────────────────────────────────────
+let _editRecord = null;
+let _editSinoState = {};  // 'fieldId|itemIndex' → 'SI'|'NO'|'NA'|''
+let _editTableState = {}; // fieldId → [ {colId: val, ...}, ... ]
+
+// Fields that must never be overwritten when saving an edit
+const EDIT_PROTECTED = [
+  'firma_pin','firma_trabajador','firma_trabajador_img','fecha_firma',
+  'estado_entrega','firma_admin_devolucion','firma_admin_devolucion_img',
+  'firma_admin_obra','firma_admin_obra_img','fecha_devolucion','fecha_obra',
+  'original_id','tipo','anotaciones_trabajador'
+];
+
+function openEdit(index) {
+  const record = window._filteredRecords[index];
+  if (!record) return;
+  _editRecord = record;
+  _editSinoState = {};
+  _editTableState = {};
+
+  const form = window.SST_FORMS ? window.SST_FORMS[record.form_id] : null;
+  const code = form ? form.code : record.form_id;
+
+  document.getElementById('edit-modal-title').textContent = 'Editar — ' + code;
+  document.getElementById('edit-modal-body').innerHTML = _renderEditBody(record, form);
+  document.getElementById('edit-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeEditModal(e) {
+  if (e && e.target !== document.getElementById('edit-modal')) return;
+  document.getElementById('edit-modal').classList.remove('open');
+  document.body.style.overflow = '';
+  _editRecord = null;
+}
+
+function _renderEditBody(record, form) {
+  const d = record.form_data || {};
+  let html = '';
+
+  // Worker fields
+  html += `<div class="detail-section">
+    <div class="detail-section-title" style="background:var(--gray)">👤 Datos del Trabajador</div>
+    <div class="detail-section-body">
+      ${_ef('ew-nombre','Nombre',record.worker_name||'')}
+      ${_ef('ew-apellido','Apellido',record.worker_lastname||'')}
+      ${_ef('ew-cedula','Cédula',record.worker_doc||'')}
+      ${_ef('ew-cargo','Cargo',record.worker_role||'')}
+      ${_ef('ew-empresa','Empresa',record.worker_company||'')}
+    </div>
+  </div>`;
+
+  // Protected fields info (FR-SST-43)
+  const protectedPresent = EDIT_PROTECTED.filter(k => d[k] !== undefined && d[k] !== '' && d[k] !== null);
+  if (protectedPresent.length) {
+    html += `<div class="detail-section">
+      <div class="detail-section-title" style="background:#e65100">🔒 Campos protegidos (no editables)</div>
+      <div class="detail-section-body" style="flex-direction:row;flex-wrap:wrap;gap:6px">
+        ${protectedPresent.map(k => `<span class="edit-protected-badge">🔒 ${esc(k)}</span>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  if (!form || !form.sections) {
+    html += `<div class="detail-section">
+      <div class="detail-section-title">Datos del formulario (JSON)</div>
+      <div class="detail-section-body">
+        <textarea class="edit-input" id="ew-raw-json" style="min-height:220px;font-family:monospace;font-size:11px">${esc(JSON.stringify(d, null, 2))}</textarea>
+      </div>
+    </div>`;
+    return html;
+  }
+
+  form.sections.forEach(section => {
+    html += `<div class="detail-section">
+      <div class="detail-section-title">${esc(section.title)}</div>
+      <div class="detail-section-body">`;
+    section.fields.forEach(field => { html += _renderEditField(field, d); });
+    html += `</div></div>`;
+  });
+
+  return html;
+}
+
+function _ef(id, label, val) {
+  return `<div class="edit-field-group">
+    <label class="edit-label">${esc(label)}</label>
+    <input class="edit-input" id="${id}" type="text" value="${esc(String(val))}">
+  </div>`;
+}
+
+function _renderEditField(field, data) {
+  const val = data[field.id];
+  const fid = 'ef-' + field.id;
+
+  switch (field.type) {
+    case 'text': case 'number': case 'date': case 'month': case 'time': {
+      return `<div class="edit-field-group">
+        <label class="edit-label">${esc(field.label||field.id)}</label>
+        <input class="edit-input" id="${fid}" type="${field.type}" value="${esc(String(val||''))}">
+      </div>`;
+    }
+    case 'textarea': {
+      return `<div class="edit-field-group">
+        <label class="edit-label">${esc(field.label||field.id)}</label>
+        <textarea class="edit-input" id="${fid}" rows="${field.rows||3}">${esc(String(val||''))}</textarea>
+      </div>`;
+    }
+    case 'radio': {
+      const opts = (field.options||[]).map(opt =>
+        `<label class="edit-radio-label">
+          <input type="radio" name="er-${field.id}" value="${esc(opt)}" ${val===opt?'checked':''}>
+          ${esc(opt)}
+        </label>`).join('');
+      return `<div class="edit-field-group">
+        <label class="edit-label">${esc(field.label||field.id)}</label>
+        <div class="edit-radio-group">${opts}</div>
+      </div>`;
+    }
+    case 'sino': {
+      if (!field.items || !field.items.length) return '';
+      const vals = (val && typeof val === 'object') ? val : {};
+      field.items.forEach((_, i) => { _editSinoState[field.id+'|'+i] = vals[i] || ''; });
+      const rows = field.items.map((item, i) => {
+        const cur = _editSinoState[field.id+'|'+i];
+        const btn = v => `<button type="button" class="edit-sino-btn${cur===v?' active-'+v:''}" id="esb-${field.id}-${i}-${v}" onclick="editSinoClick('${field.id}',${i},'${v}')">${v}</button>`;
+        return `<div class="edit-sino-row">
+          <span class="sino-row-num">${i+1}</span>
+          <span class="sino-row-text">${esc(item)}</span>
+          <div class="edit-sino-btns">${btn('SI')}${btn('NO')}${btn('NA')}</div>
+        </div>`;
+      }).join('');
+      return `<div class="edit-field-group"><div class="edit-sino-list">${rows}</div></div>`;
+    }
+    case 'table': {
+      const rows = Array.isArray(val) ? val.map(r => ({...r})) : [];
+      _editTableState[field.id] = rows;
+      return `<div class="edit-field-group">
+        <div class="edit-label" style="margin-bottom:6px">${esc(field.label||field.id)}</div>
+        <div id="etbl-${field.id}">${_renderEditTable(field)}</div>
+        <button type="button" class="btn btn-secondary" style="margin-top:6px;font-size:13px;padding:8px 14px" onclick="editTableAdd('${field.id}')">+ Agregar fila</button>
+      </div>`;
+    }
+    default: return '';
+  }
+}
+
+function _renderEditTable(field) {
+  const cols = field.columns || [];
+  const rows = _editTableState[field.id] || [];
+  if (!cols.length) return '';
+  const head = cols.map(c => `<th>${esc(c.label)}</th>`).join('') + '<th></th>';
+  const body = rows.map((row, ri) => {
+    const cells = cols.map(c => {
+      const v = row[c.id] !== undefined ? row[c.id] : '';
+      const t = (c.type === 'number' || c.type === 'date') ? c.type : 'text';
+      return `<td><input class="edit-input" type="${t}" value="${esc(String(v))}" onchange="editCellChange('${field.id}',${ri},'${c.id}',this.value)" oninput="editCellChange('${field.id}',${ri},'${c.id}',this.value)"></td>`;
+    }).join('');
+    return `<tr>${cells}<td style="padding:3px 4px;white-space:nowrap">
+      <button type="button" style="background:#ffebee;color:#c62828;border:none;border-radius:5px;padding:4px 8px;cursor:pointer;font-size:11px" onclick="editTableRemove('${field.id}',${ri})">✕</button>
+    </td></tr>`;
+  }).join('');
+  return `<div class="edit-table-wrap"><table class="edit-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+function editSinoClick(fieldId, i, val) {
+  const key = fieldId + '|' + i;
+  const cur = _editSinoState[key];
+  const next = cur === val ? '' : val;
+  _editSinoState[key] = next;
+  ['SI','NO','NA'].forEach(v => {
+    const btn = document.getElementById(`esb-${fieldId}-${i}-${v}`);
+    if (btn) btn.className = 'edit-sino-btn' + (next === v ? ' active-' + v : '');
+  });
+}
+
+function editCellChange(fieldId, ri, colId, value) {
+  if (_editTableState[fieldId] && _editTableState[fieldId][ri]) {
+    _editTableState[fieldId][ri][colId] = value;
+  }
+}
+
+function editTableAdd(fieldId) {
+  const form = window.SST_FORMS && _editRecord ? window.SST_FORMS[_editRecord.form_id] : null;
+  if (!form) return;
+  let field = null;
+  (form.sections||[]).forEach(s => s.fields.forEach(f => { if (f.id===fieldId) field=f; }));
+  if (!field) return;
+  if (!_editTableState[fieldId]) _editTableState[fieldId] = [];
+  const empty = {};
+  (field.columns||[]).forEach(c => { empty[c.id] = ''; });
+  _editTableState[fieldId].push(empty);
+  const wrap = document.getElementById('etbl-' + fieldId);
+  if (wrap) wrap.innerHTML = _renderEditTable(field);
+}
+
+function editTableRemove(fieldId, ri) {
+  if (!_editTableState[fieldId]) return;
+  _editTableState[fieldId].splice(ri, 1);
+  const form = window.SST_FORMS && _editRecord ? window.SST_FORMS[_editRecord.form_id] : null;
+  if (!form) return;
+  let field = null;
+  (form.sections||[]).forEach(s => s.fields.forEach(f => { if (f.id===fieldId) field=f; }));
+  if (field) { const wrap = document.getElementById('etbl-' + fieldId); if (wrap) wrap.innerHTML = _renderEditTable(field); }
+}
+
+function _collectEditFormData() {
+  const record = _editRecord;
+  if (!record) return null;
+  const form = window.SST_FORMS ? window.SST_FORMS[record.form_id] : null;
+
+  if (!form || !form.sections) {
+    try {
+      const raw = document.getElementById('ew-raw-json');
+      return raw ? JSON.parse(raw.value) : { ...record.form_data };
+    } catch { showToast('JSON inválido — revisa el formato'); return null; }
+  }
+
+  const newData = { ...record.form_data };
+
+  form.sections.forEach(section => {
+    section.fields.forEach(field => {
+      const el = document.getElementById('ef-' + field.id);
+      switch (field.type) {
+        case 'text': case 'number': case 'date': case 'month': case 'time':
+        case 'textarea':
+          if (el) newData[field.id] = el.value;
+          break;
+        case 'radio': {
+          const chk = document.querySelector(`input[name="er-${field.id}"]:checked`);
+          newData[field.id] = chk ? chk.value : (newData[field.id] || '');
+          break;
+        }
+        case 'sino': {
+          if (!field.items) break;
+          const obj = {};
+          field.items.forEach((_, i) => { obj[i] = _editSinoState[field.id+'|'+i] || ''; });
+          newData[field.id] = obj;
+          break;
+        }
+        case 'table':
+          newData[field.id] = _editTableState[field.id] || [];
+          break;
+      }
+    });
+  });
+
+  // Restore all protected fields from original data — never overwrite them
+  EDIT_PROTECTED.forEach(k => {
+    if (record.form_data && record.form_data[k] !== undefined) {
+      newData[k] = record.form_data[k];
+    }
+  });
+
+  return newData;
+}
+
+async function saveCurrentEdit() {
+  if (!_editRecord) return;
+  const btn = document.getElementById('save-edit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Guardando...';
+
+  try {
+    const newFormData = _collectEditFormData();
+    if (!newFormData) return;
+
+    const changes = {
+      worker_name:    (document.getElementById('ew-nombre')?.value.trim()   || _editRecord.worker_name    || ''),
+      worker_lastname:(document.getElementById('ew-apellido')?.value.trim() || _editRecord.worker_lastname|| ''),
+      worker_doc:     (document.getElementById('ew-cedula')?.value.trim()   || _editRecord.worker_doc     || ''),
+      worker_role:    (document.getElementById('ew-cargo')?.value.trim()    || _editRecord.worker_role    || ''),
+      worker_company: (document.getElementById('ew-empresa')?.value.trim()  || _editRecord.worker_company || ''),
+      form_data: newFormData
+    };
+
+    await DB.updateRecord(_editRecord.id, changes);
+
+    // Update in-memory cloud records list
+    const idx = _cloudRecords.findIndex(r => r.id === _editRecord.id);
+    if (idx !== -1) _cloudRecords[idx] = { ..._cloudRecords[idx], ...changes };
+
+    closeEditModal();
+    renderList();
+    updateStats();
+    showToast('✅ Registro actualizado');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '💾 Guardar cambios';
+  }
 }
