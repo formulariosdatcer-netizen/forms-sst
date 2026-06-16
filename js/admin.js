@@ -114,28 +114,50 @@ function renderList() {
     // FR-SST-43 special display
     const esPedido = r.form_id === 'fr-sst-43';
     const estado43 = esPedido ? ((r.form_data && r.form_data.estado_entrega) || 'pendiente_firma') : null;
-    const pin43    = esPedido ? ((r.form_data && r.form_data.firma_pin) || '') : null;
+    const esDevo   = esPedido && r.form_data && r.form_data.tipo === 'devolucion';
+    const esUso    = esPedido && r.form_data && r.form_data.tipo === 'usado_en_obra';
+    const esVinc   = esDevo || esUso;
+    const pin43    = esPedido && !esVinc ? ((r.form_data && r.form_data.firma_pin) || '') : null;
+
     const estadoBadge43 = esPedido ? `<div style="margin-top:6px;font-size:11px;display:flex;flex-wrap:wrap;gap:4px;align-items:center">
-      ${estado43 === 'pendiente_firma' ? '<span style="background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:10px;font-weight:600">⏳ Pendiente firma</span>' : ''}
-      ${estado43 === 'firmado'         ? '<span style="background:#e8f5e9;color:#1b5e20;padding:2px 8px;border-radius:10px;font-weight:600">✅ Firmado</span>' : ''}
-      ${estado43 === 'devolucion'      ? '<span style="background:#e3f2fd;color:#0d47a1;padding:2px 8px;border-radius:10px;font-weight:600">🔄 Devuelto</span>' : ''}
-      ${estado43 === 'usado_en_obra'   ? '<span style="background:#fce4ec;color:#880e4f;padding:2px 8px;border-radius:10px;font-weight:600">🏗 Usado en obra</span>' : ''}
+      ${esDevo ? '<span style="background:#e3f2fd;color:#0d47a1;padding:2px 8px;border-radius:10px;font-weight:600">🔄 Registro de devolución</span>' : ''}
+      ${esUso  ? '<span style="background:#fce4ec;color:#880e4f;padding:2px 8px;border-radius:10px;font-weight:600">🏗 Registro de uso en obra</span>' : ''}
+      ${!esVinc && estado43 === 'pendiente_firma' ? '<span style="background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:10px;font-weight:600">⏳ Pendiente firma</span>' : ''}
+      ${!esVinc && estado43 === 'firmado'         ? '<span style="background:#e8f5e9;color:#1b5e20;padding:2px 8px;border-radius:10px;font-weight:600">✅ Entregado</span>' : ''}
+      ${!esVinc && estado43 === 'devolucion'      ? '<span style="background:#e8f5e9;color:#1b5e20;padding:2px 8px;border-radius:10px;font-weight:600">✅ Entregado</span><span style="color:#bbb;font-size:13px">→</span><span style="background:#e3f2fd;color:#0d47a1;padding:2px 8px;border-radius:10px;font-weight:600">🔄 Devuelto</span>' : ''}
+      ${!esVinc && estado43 === 'usado_en_obra'   ? '<span style="background:#e8f5e9;color:#1b5e20;padding:2px 8px;border-radius:10px;font-weight:600">✅ Entregado</span><span style="color:#bbb;font-size:13px">→</span><span style="background:#fce4ec;color:#880e4f;padding:2px 8px;border-radius:10px;font-weight:600">🏗 Usado en obra</span>' : ''}
       ${pin43 && estado43 === 'pendiente_firma' ? `<span style="color:#888">PIN: <strong style="font-size:15px;color:#E87722;letter-spacing:2px">${pin43}</strong></span>` : ''}
     </div>` : '';
 
-    const acciones43 = esPedido && estado43 === 'firmado' ? `
+    const acciones43 = esPedido && !esVinc && estado43 === 'firmado' ? `
       <button class="submission-btn" style="color:#1565c0" onclick="registrarDevolucion(${i})">🔄 Devolución</button>
       <button class="submission-btn" style="color:#6a1b9a" onclick="marcarUsadoObra(${i})">🏗 Usado en obra</button>` : '';
 
+    const vincLink = esDevo ? `
+      <div style="font-size:11px;color:#1565c0;margin-top:3px;display:flex;align-items:center;gap:4px">
+        <span style="font-size:14px;line-height:1">↳</span> Vinculada al registro de entrega original
+      </div>` : esUso ? `
+      <div style="font-size:11px;color:#880e4f;margin-top:3px;display:flex;align-items:center;gap:4px">
+        <span style="font-size:14px;line-height:1">↳</span> Vinculada al registro de entrega original
+      </div>` : '';
+
+    const cardStyle = esDevo ? 'style="border-left:4px solid #1565c0;background:linear-gradient(to right,#f0f7ff 0%,#fff 60%)"'
+                    : esUso  ? 'style="border-left:4px solid #880e4f;background:linear-gradient(to right,#fdf0f5 0%,#fff 60%)"'
+                    : '';
+    const codeExtra = esDevo ? ' · <span style="color:#1565c0;font-size:11px">Devolución</span>'
+                    : esUso  ? ' · <span style="color:#880e4f;font-size:11px">Usado en obra</span>'
+                    : '';
+
     return `
-      <div class="submission-card">
+      <div class="submission-card" ${cardStyle}>
         <div class="submission-header">
           <div class="submission-icon">${icon}</div>
           <div class="submission-info">
-            <div class="submission-form-code">${code}</div>
+            <div class="submission-form-code">${code}${codeExtra}</div>
             <div class="submission-worker">${name}</div>
             <div class="submission-meta">${date}</div>
             ${estadoBadge43}
+            ${vincLink}
           </div>
           ${badge}
         </div>
@@ -431,15 +453,23 @@ async function marcarUsadoObra(index) {
     titulo: '🏗 Marcar como usado en obra',
     items, siLabel: 'Usado', noLabel: 'No usado',
     onConfirm: async ({ nombre, sigImg, itemEstados }) => {
-      const updatedData = Object.assign({}, record.form_data, {
-        estado_entrega: 'usado_en_obra', firma_admin_obra: nombre, firma_admin_obra_img: sigImg,
+      // Create a new linked record (mirrors registrarDevolucion pattern)
+      const usoData = Object.assign({}, record.form_data, {
+        tipo: 'usado_en_obra', original_id: record.id, estado_entrega: 'usado_en_obra',
+        firma_admin_obra: nombre, firma_admin_obra_img: sigImg,
         fecha_obra: new Date().toISOString(),
         entregas: items.map((e, i) => ({ ...e, estado_uso: itemEstados[i] === 'si' ? 'usado' : 'no_usado' }))
       });
+      delete usoData.firma_pin;
+      await DB.save('fr-sst-43', {
+        nombres: record.worker_name || '', apellidos: record.worker_lastname || '',
+        cedula: record.worker_doc || '', cargo: record.worker_role || '', empresa: record.worker_company || ''
+      }, usoData);
+      // Mark original as used
+      const updatedData = Object.assign({}, record.form_data, { estado_entrega: 'usado_en_obra' });
       await DB.updateFormData(record.id, updatedData);
-      const idx = _cloudRecords.findIndex(r => r.id === record.id);
-      if (idx !== -1) _cloudRecords[idx] = Object.assign({}, _cloudRecords[idx], { form_data: updatedData });
-      renderList(); showToast('✅ Marcado como usado en obra');
+      _cloudRecords = []; await loadFromCloud();
+      showToast('✅ Marcado como usado en obra');
     }
   });
 }
