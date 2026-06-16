@@ -146,14 +146,16 @@
                      : tipoDoc === 'uso'         ? 'FIRMA DE QUIEN AUTORIZA USO EN OBRA'
                      :                             'FIRMA DE RECIBIDO';
 
-    const tableBody = rawRows.map((r, idx) => {
-      let noEstado = '';
-      if (tipoDoc === 'devolucion') noEstado = r.estado_devolucion === 'no_devuelto' ? '⚠ NO DEVUELTO' : '';
-      else if (tipoDoc === 'uso')   noEstado = r.estado_uso === 'no_usado' ? '⚠ NO USADO' : '';
-      else                          noEstado = r.estado_recepcion === 'no_recibido' ? '⚠ NO RECIBIDO' : '';
-      // Name goes in the first data row of FIRMA DE RECIBIDO column
-      return [r.fecha || '', (r.epp || '') + (noEstado ? '\n' + noEstado : ''), r.cantidad || '',
-              idx === 0 ? (firmaName || '') : ''];
+    const noTexto = tipoDoc === 'devolucion' ? 'NO DEVUELTO'
+                  : tipoDoc === 'uso'         ? 'NO USADO'
+                  :                             'NO RECIBIDO';
+
+    const tableBody = rawRows.map(r => {
+      const isNeg = tipoDoc === 'devolucion' ? r.estado_devolucion === 'no_devuelto'
+                  : tipoDoc === 'uso'         ? r.estado_uso === 'no_usado'
+                  :                             r.estado_recepcion === 'no_recibido';
+      // Every item row: firma name if received, status text if not — never blank
+      return [r.fecha || '', r.epp || '', r.cantidad || '', isNeg ? noTexto : (firmaName || '')];
     });
     while (tableBody.length < 15) tableBody.push(['', '', '', '']);
 
