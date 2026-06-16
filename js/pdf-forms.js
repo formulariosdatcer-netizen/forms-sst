@@ -182,15 +182,17 @@
     if (y > tblStart) doc.rect(M, tblStart, CW, y - tblStart, 'S');
     y += 2;
 
-    // Compact signature block — image + name (smaller than before to fit 1 page)
+    // Signature block — natural size, not stretched across full page
     if (firmaImg || firmaName) {
-      const BH = firmaImg ? 22 : 12;
+      const SIG_W = 55;   // mm — fixed width keeps natural proportions
+      const SIG_H = 18;   // mm — height matching ~3:1 ratio of drawn signature
+      const BH = firmaImg ? SIG_H + 11 : 12;
       y = PDF.needPage(doc, y, BH + 2, H, M);
       doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(M, y, CW, BH, 'S');
       doc.setFontSize(7); doc.setFont(undefined, 'bold'); doc.setTextColor(60, 60, 60);
       doc.text(firmaLabel, M + 3, y + 4.5);
       if (firmaImg) {
-        try { doc.addImage(firmaImg, 'PNG', M + 3, y + 6, CW - 6, BH - 10); } catch {}
+        try { doc.addImage(firmaImg, 'PNG', M + 3, y + 5.5, SIG_W, SIG_H); } catch {}
       }
       if (firmaName) {
         doc.setFontSize(8); doc.setFont(undefined, 'normal'); doc.setTextColor(0);
