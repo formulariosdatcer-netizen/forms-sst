@@ -130,9 +130,10 @@
     doc.text(legalLines, M + 3, y + 5);
     y += 17;
 
-    // Deliveries table
+    // Deliveries table — FIRMA DE RECIBIDO comes from firma_trabajador (signed via firma.html)
     const rawRows = Array.isArray(data.entregas) ? data.entregas : [];
-    const tableBody = rawRows.map(r => [r.fecha || '', r.epp || '', r.cantidad || '', r.observaciones || '']);
+    const firmaTexto = data.firma_trabajador || '';
+    const tableBody = rawRows.map((r, idx) => [r.fecha || '', r.epp || '', r.cantidad || '', idx === 0 ? firmaTexto : '']);
     while (tableBody.length < 15) tableBody.push(['', '', '', '']);
     y = PDF.needPage(doc, y, 20, H, M);
     const tblStart = y;

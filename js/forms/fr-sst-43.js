@@ -24,8 +24,7 @@ window.SST_FORMS['fr-sst-43'] = {
           columns: [
             { id: 'fecha', label: 'Fecha', type: 'date', required: true },
             { id: 'epp', label: 'E.P.P. y/o Dotación', type: 'text', required: true, placeholder: 'Ej: Casco, botas de seguridad...' },
-            { id: 'cantidad', label: 'Cantidad', type: 'number', required: true, placeholder: '1' },
-            { id: 'observaciones', label: 'Observaciones', type: 'text', placeholder: 'Talla, referencia...' }
+            { id: 'cantidad', label: 'Cantidad', type: 'number', required: true, placeholder: '1' }
           ]
         }
       ]
