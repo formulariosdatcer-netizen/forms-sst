@@ -152,18 +152,19 @@ const DB = {
         .select('*')
         .eq('form_id', 'fr-sst-43')
         .filter('form_data->>firma_pin', 'eq', String(pin))
-        .maybeSingle();
-      if (!data) return null;
+        .limit(1);
+      const row = Array.isArray(data) ? data[0] : null;
+      if (!row) return null;
       return {
-        id: data.id,
-        form_id: data.form_id,
-        worker_name: data.worker_name,
-        worker_lastname: data.worker_lastname,
-        worker_doc: data.worker_doc,
-        worker_role: data.worker_role,
-        worker_company: data.worker_company,
-        form_data: data.form_data,
-        created_at: data.created_at,
+        id: row.id,
+        form_id: row.form_id,
+        worker_name: row.worker_name,
+        worker_lastname: row.worker_lastname,
+        worker_doc: row.worker_doc,
+        worker_role: row.worker_role,
+        worker_company: row.worker_company,
+        form_data: row.form_data,
+        created_at: row.created_at,
         synced: true
       };
     } catch { return null; }

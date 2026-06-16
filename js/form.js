@@ -406,7 +406,12 @@ async function submitForm() {
     const formData = collectFormData();
     let pin = null;
     if (_config.id === 'fr-sst-43') {
-      pin = String(Math.floor(100000 + Math.random() * 900000));
+      // Generate unique PIN — retry if collision with existing record
+      let attempts = 0;
+      do {
+        pin = String(Math.floor(100000 + Math.random() * 900000));
+        attempts++;
+      } while (attempts < 10 && await DB.fetchByPin(pin) !== null);
       formData.firma_pin = pin;
       formData.estado_entrega = 'pendiente_firma';
     }
