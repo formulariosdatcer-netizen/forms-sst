@@ -1,4 +1,4 @@
-const CACHE = 'sst-datcer-v9';
+const CACHE = 'sst-datcer-v10';
 
 const ASSETS = [
   './index.html',

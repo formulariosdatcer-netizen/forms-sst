@@ -1,64 +1,114 @@
 window.SST_FORMS = window.SST_FORMS || {};
 window.SST_FORMS['fr-sst-39'] = {
   id: 'fr-sst-39', code: 'FR-SST-39', version: '01',
-  title: 'Inspección de Andamio Colgante', icon: '🏗️',
+  title: 'Inspección Preuso de Andamio Colgante', icon: '🏗️',
   sections: [
     {
       title: 'Datos Generales',
       fields: [
-        { id: 'fecha', label: 'Fecha de inspección', type: 'date', required: true },
-        { id: 'responsable', label: 'Responsable de la inspección', type: 'text', required: true },
-        { id: 'ubicacion', label: 'Ubicación del andamio', type: 'text', required: true },
-        { id: 'altura_trabajo', label: 'Altura de trabajo (metros)', type: 'number', required: true },
-        { id: 'capacidad_carga', label: 'Capacidad de carga (kg)', type: 'text' },
-        { id: 'marca_serial', label: 'Marca / N° Serie', type: 'text' }
+        { id: 'nombre_trabajador', label: 'Nombre del Trabajador', type: 'text', required: true },
+        { id: 'cargo', label: 'Cargo', type: 'text' },
+        { id: 'cedula', label: 'Cédula', type: 'text' },
+        { id: 'responsable_sst', label: 'Nombre del Responsable de SST', type: 'text' },
+        { id: 'cedula_sst', label: 'Cédula Responsable SST', type: 'text' },
+        { id: 'proyecto', label: 'Proyecto', type: 'text', required: true },
+        { id: 'mes', label: 'Mes de Inspección', type: 'month', required: true }
       ]
     },
     {
-      title: 'Inspección de Estructura y Componentes',
+      title: 'Montaje',
       fields: [
         {
-          id: 'estructura',
+          id: 'montaje',
           type: 'sino',
           items: [
-            'La plataforma de trabajo está en buen estado, sin grietas ni deformaciones.',
-            'Los cables de suspensión no presentan alambre roto, deshilachado o corrosión.',
-            'Los grilletes, ganchos y conectores están en buen estado y con seguro activo.',
-            'El sistema de freno / mecanismo de elevación funciona correctamente.',
-            'Las poleas y sistemas de polipasto están en buen estado y lubricados.',
-            'Los puntos de anclaje en la estructura superior son resistentes y adecuados.',
-            'Las barandas de protección están completas y bien aseguradas (mínimo 90 cm).',
-            'El rodapié (guardacuerpos) está instalado y en buen estado.',
-            'La plataforma no tiene espacios que permitan caída de personas u objetos.',
-            'El contrapeso o amarre de seguridad está instalado correctamente.'
+            'Los elementos (cables, pescantes, ganchos) son trasladados sin sufrir golpes.',
+            'Se ensambla la plataforma desde el nivel más bajo.'
           ]
         }
       ]
     },
     {
-      title: 'Condiciones de Seguridad para el Uso',
+      title: 'Anclajes',
       fields: [
         {
-          id: 'seguridad_uso',
+          id: 'anclajes',
           type: 'sino',
           items: [
-            'El personal que usará el andamio usa arnés de cuerpo completo certificado.',
-            'La eslinga está conectada a línea de vida independiente del andamio.',
-            'Se verificó que la capacidad de carga no sea excedida.',
-            'El área bajo el andamio está delimitada y señalizada.',
-            'Las condiciones climáticas (viento, lluvia) permiten el trabajo seguro.',
-            'Se ha realizado el ATS para la actividad en el andamio colgante.',
-            'Existe comunicación entre el operador y el personal en tierra.'
+            'Cumple con la resistencia, es sólido, estable.',
+            'Los pescantes están sujetos a la estructura.',
+            'Los soportes de enganche resisten el peso del andamio, trabajadores y material.'
           ]
         }
       ]
     },
     {
-      title: 'Resultado de la Inspección',
+      title: 'Cables',
       fields: [
-        { id: 'resultado', label: 'Resultado', type: 'radio', required: true, options: ['Apto para uso', 'Condicionado — correcciones requeridas antes de usar', 'No apto — fuera de servicio'] },
-        { id: 'acciones', label: 'Acciones correctivas', type: 'textarea', rows: 3 },
-        { id: 'observaciones', label: 'Observaciones', type: 'textarea', rows: 2 }
+        {
+          id: 'cables',
+          type: 'sino',
+          items: [
+            'Están conformados por torones y alma de acero.',
+            'En la parte superior (anclaje) están sujetos con tres perros por guaya.',
+            'Los perros son del mismo diámetro que la guaya.',
+            'Están libres de hilos sueltos o reventados.',
+            'Están libres de nudos o partes estranguladas.',
+            'El alma está cubierta por los torones.',
+            'Se mantienen los dos últimos metros de cable enrollados.'
+          ]
+        }
+      ]
+    },
+    {
+      title: 'Plataforma',
+      fields: [
+        {
+          id: 'plataforma',
+          type: 'sino',
+          items: [
+            'Es completa y libre de vacíos.',
+            'Los tablones o plataforma resisten tres veces el peso del trabajador y material.',
+            'Los tablones o plataforma están libres de fisuras y torcidos.',
+            'La plataforma cuenta con doble pasamano.',
+            'La plataforma cuenta con rodapiés.',
+            'Cuenta con protección para evitar caída de material.'
+          ]
+        }
+      ]
+    },
+    {
+      title: 'Mecanismo',
+      fields: [
+        {
+          id: 'mecanismo',
+          type: 'sino',
+          items: [
+            'Se probó el buen funcionamiento de trinquetes, piñones y palanca.',
+            'Se verificó el buen funcionamiento del freno.',
+            'Los ganchos están libres de óxido y fisuras.'
+          ]
+        }
+      ]
+    },
+    {
+      title: 'Condiciones del Área de Trabajo',
+      fields: [
+        {
+          id: 'condiciones_area',
+          type: 'sino',
+          items: [
+            'El área está libre de lluvias fuertes.',
+            'El área está libre de tormentas eléctricas.',
+            'Se señalizó el área.'
+          ]
+        }
+      ]
+    },
+    {
+      title: 'Observaciones',
+      fields: [
+        { id: 'obsgen', label: 'Observaciones Generales', type: 'textarea', rows: 3 }
       ]
     }
   ]

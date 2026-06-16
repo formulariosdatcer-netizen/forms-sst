@@ -6,61 +6,56 @@ window.SST_FORMS['fr-sst-41'] = {
     {
       title: 'Datos de la Inspección',
       fields: [
-        { id: 'fecha', label: 'Fecha de inspección', type: 'date', required: true },
-        { id: 'responsable', label: 'Responsable', type: 'text', required: true },
-        { id: 'area', label: 'Área / Proyecto', type: 'text', required: true }
+        { id: 'nombre1', label: 'Nombre — Responsable 1', type: 'text', required: true },
+        { id: 'cargo1', label: 'Cargo', type: 'text' },
+        { id: 'nombre2', label: 'Nombre — Responsable 2', type: 'text' },
+        { id: 'cargo2', label: 'Cargo Responsable 2', type: 'text' },
+        { id: 'fecha', label: 'Fecha', type: 'date', required: true },
+        { id: 'hora', label: 'Hora', type: 'time' }
       ]
     },
     {
-      title: 'Registro de Extintores',
+      title: 'Características del Extintor',
       fields: [
-        {
-          id: 'extintores',
-          type: 'table',
-          label: 'Extintores inspeccionados',
-          addLabel: 'Agregar extintor',
-          minRows: 1,
-          columns: [
-            { id: 'numero', label: 'N° / ID', type: 'text', required: true },
-            { id: 'ubicacion', label: 'Ubicación', type: 'text', required: true },
-            { id: 'tipo', label: 'Tipo (CO2/PQS/Agua)', type: 'text' },
-            { id: 'capacidad', label: 'Capacidad', type: 'text', placeholder: 'Ej: 10 lb' },
-            { id: 'presion', label: 'Presión (N/B/A)', type: 'text', placeholder: 'N=Normal B=Baja A=Alta' },
-            { id: 'fecha_carga', label: 'Fecha última carga', type: 'date' },
-            { id: 'fecha_vencimiento', label: 'Fecha vencimiento', type: 'date' },
-            { id: 'sello', label: 'Sello intacto (SI/NO)', type: 'text' },
-            { id: 'accesible', label: 'Accesible (SI/NO)', type: 'text' },
-            { id: 'estado', label: 'Estado general', type: 'text', placeholder: 'Bueno/Regular/Malo' },
-            { id: 'observaciones', label: 'Observaciones', type: 'text' }
-          ]
-        }
+        { id: 'tipo', label: 'Tipo de Extintor', type: 'text', required: true, placeholder: 'Ej: PQS, CO₂, Agua...' },
+        { id: 'clase', label: 'Clase de Fuego', type: 'text', placeholder: 'A, B, C, D, K' },
+        { id: 'agente', label: 'Agente Extintor', type: 'text' },
+        { id: 'ubicacion', label: 'Ubicación del Extintor', type: 'text', required: true },
+        { id: 'numero', label: 'N° Extintor / ID', type: 'text' },
+        { id: 'capacidad', label: 'Capacidad', type: 'text', placeholder: 'Ej: 10 lb' }
       ]
     },
     {
-      title: 'Verificación General',
+      title: 'Lista de Verificación',
       fields: [
         {
           id: 'verificacion',
           type: 'sino',
           items: [
-            'Todos los extintores tienen señalización visible y clara.',
-            'Los extintores están a una altura adecuada (parte superior máx. 1.50 m).',
-            'Los extintores están en lugares accesibles, sin obstáculos.',
-            'Los manómetros indican presión en zona verde (normal).',
-            'Las instrucciones de uso son legibles.',
-            'Los sellos de seguridad están intactos.',
-            'No hay extintores vencidos o sin recarga.',
-            'El personal conoce cómo usar el extintor y cuándo usarlo.',
-            'Los extintores están agrupados según el tipo de riesgo del área.'
+            '¿El extintor está en el lugar indicado de acuerdo al riesgo del área y a los factores ambientales?',
+            '¿Es visible?',
+            '¿Cuenta con señalización respectiva?',
+            '¿El acceso al extintor se encuentra obstruido?',
+            '¿Ha sido activado? → Verificar estado de presión.',
+            '¿Ha sido manipulado? → Verificar cinta y pasador de seguridad.',
+            '¿Presenta algún tipo de deterioro?',
+            '¿Está equipado con un manómetro de presión? → Verificar si su estado es satisfactorio.',
+            '¿El extintor cuenta con manguera y boquilla?',
+            '¿Las uniones del manómetro y válvula de descarga se encuentran en buenas condiciones?',
+            '¿El extintor cuenta con la etiqueta de revisión? → Ver registro de última revisión.',
+            '¿El extintor cuenta con etiqueta adhesiva que indica tipo, agente, fecha de recarga y vencimiento?',
+            '¿La fecha de fabricación del cilindro está acorde a la vida útil? → Ver en la base del cilindro.',
+            '¿Se han realizado mantenimientos anuales? → Ver registros.',
+            '¿La base del extintor es segura y se encuentra en buen estado?',
+            '¿Se tiene definido un programa de capacitación para brigadistas en control de incendios?'
           ]
         }
       ]
     },
     {
-      title: 'Resultado',
+      title: 'Observaciones Generales',
       fields: [
-        { id: 'resultado', label: 'Resultado general', type: 'radio', options: ['Conforme', 'Con observaciones', 'No conforme — acción inmediata'] },
-        { id: 'observaciones', label: 'Observaciones y acciones', type: 'textarea', rows: 3 }
+        { id: 'obsgen', label: 'Observaciones y Recomendaciones Generales', type: 'textarea', rows: 3 }
       ]
     }
   ]

@@ -6,57 +6,91 @@ window.SST_FORMS['fr-sst-37'] = {
     {
       title: 'Datos de la Inspección',
       fields: [
-        { id: 'fecha', label: 'Fecha de inspección', type: 'date', required: true },
-        { id: 'responsable', label: 'Responsable', type: 'text', required: true },
-        { id: 'ubicacion', label: 'Lugar de uso', type: 'text', required: true },
-        { id: 'tipo_escalera', label: 'Tipo de escalera', type: 'radio', required: true, options: ['Escalera de tijera', 'Escalera de extensión', 'Escalera simple / recta', 'Escalera de caracol'] },
-        { id: 'marca_serial', label: 'Marca / N° Serie o Placa', type: 'text' },
-        { id: 'altura_max', label: 'Altura máxima de uso (metros)', type: 'number', placeholder: 'Ej: 3' }
+        { id: 'mes', label: 'Mes de Inspección', type: 'month', required: true },
+        { id: 'responsable', label: 'Responsable de la Inspección', type: 'text', required: true },
+        { id: 'cargo', label: 'Cargo', type: 'text' },
+        { id: 'cedula', label: 'Cédula', type: 'text' },
+        { id: 'cliente', label: 'Cliente', type: 'text' },
+        { id: 'contratista', label: 'Contratista', type: 'text' },
+        { id: 'tipo', label: 'Tipo de Escalera', type: 'radio', required: true, options: ['TIJERA', 'SIMPLE', 'EXTENSIÓN', 'MULTIDIRECCIONAL'] },
+        { id: 'clasificacion', label: 'Clasificación', type: 'text' },
+        { id: 'certificacion', label: 'Certificación / N° Serie', type: 'text' }
       ]
     },
     {
-      title: 'Verificación del Estado Físico',
+      title: 'Aspectos Generales',
       fields: [
         {
-          id: 'estado_fisico',
+          id: 'aspectos_generales',
           type: 'sino',
           items: [
-            'Los peldaños están completos, limpios y libres de aceite o grasa.',
-            'Los largueros (rieles laterales) no presentan fisuras, dobleces o daños.',
-            'Los travesaños y peldaños están firmes y sin movimiento.',
-            'Los pies antideslizantes están en buen estado y bien sujetos.',
-            'Las zapatas de goma o puntas metálicas están en buen estado.',
-            'Los seguros, bisagras y mecanismos de extensión funcionan correctamente.',
-            'La escalera no presenta corrosión, óxido excesivo ni desgaste estructural.',
-            'La etiqueta de capacidad máxima de carga es legible.'
+            'Tiene las zapatas de soporte adecuadas y en buen estado.',
+            'Las áreas tanto por arriba como por debajo de la escalera están libres de obstrucciones.',
+            'Las escaleras son usadas frente a puertas solo si la puerta está bloqueada, con llave o resguarda.',
+            'Se encuentra en buen estado (sin golpes, dobleces o señales de corrosión).',
+            'La escalera está amarrada, bloqueada o asegurada para que no se mueva.',
+            'Todas las partes están libres de filos cortantes.',
+            'Cuenta con todos los escalones en buen estado (sin fisuras, hundimientos, grietas).',
+            'La escalera es dieléctrica y en fibra de vidrio de acuerdo a la actividad a realizar.',
+            'El tipo de escalera es de acuerdo al peso, carga y resistencia de la actividad a ejecutar.',
+            'Las escaleras están libres de grasa, aceites, pintura, barro y otras sustancias resbaladizas.',
+            'Los largueros de la escalera se encuentran en buen estado.'
           ]
         }
       ]
     },
     {
-      title: 'Verificación de Uso Seguro',
+      title: 'Escalera de Extensión',
       fields: [
         {
-          id: 'uso_seguro',
+          id: 'escalera_extension',
           type: 'sino',
           items: [
-            'La escalera es adecuada para la tarea y la altura requerida.',
-            'El ángulo de apoyo es el correcto (75° aprox. para escaleras rectas — regla 1:4).',
-            'La escalera sobresale al menos 1 metro por encima del punto de acceso.',
-            'La superficie de apoyo es firme, nivelada y estable.',
-            'Se ha asegurado la parte superior de la escalera o está siendo sujetada por otra persona.',
-            'El trabajador usa los tres puntos de contacto al subir y bajar.',
-            'No se transportan cargas que impidan el uso seguro de manos.',
-            'La escalera está dentro de la vida útil del fabricante.'
+            'La base de la escalera está colocada a una distancia no mayor a 1/4 de longitud apoyada de la parte superior en la pared.',
+            'Las dos secciones de la escalera son menores de 18 metros.',
+            'La longitud que sobresale por encima del punto de apoyo es de 1 metro.',
+            'Las extensiones de escaleras ruedan correctamente dentro de las guías de la escalera principal.',
+            'Los ganchos de seguridad de la extensión aseguran correctamente en los peldaños de la escalera principal.',
+            'Las secciones de la escalera están puestas de tal forma que la sección superior puede subirse y bajarse.'
           ]
         }
       ]
     },
     {
-      title: 'Resultado',
+      title: 'Escalera Tijera',
       fields: [
-        { id: 'resultado', label: 'Resultado de la inspección', type: 'radio', required: true, options: ['Apta para uso', 'Condicionada — usar con precaución', 'No apta — retirar de servicio'] },
-        { id: 'observaciones', label: 'Observaciones y acciones correctivas', type: 'textarea', rows: 3 }
+        {
+          id: 'escalera_tijera',
+          type: 'sino',
+          items: [
+            'El ángulo de abertura de la escalera de tijera tiene 30° como máximo; cuenta con la barra de tensión extendida completamente.',
+            'Las ménsulas diagonales están en buenas condiciones.',
+            'La repisa o plataforma de trabajo se encuentra en buenas condiciones (sin fisuras, grietas).',
+            'Las barras de tensión están en condiciones seguras (sin deterioros, fisuras, hundimientos, grietas).'
+          ]
+        }
+      ]
+    },
+    {
+      title: 'Escalera Simple',
+      fields: [
+        {
+          id: 'escalera_simple',
+          type: 'sino',
+          items: [
+            'La longitud que sobresale por encima del punto de apoyo es de 1 metro.',
+            'El ángulo de inclinación de la escalera es de 70° con respecto a la superficie vertical (muros) de apoyo.',
+            'La escalera cuenta con todos los seguros en buen estado (sin deterioros, fisuras, hundimientos).',
+            'Los sistemas de bloqueo están sin deterioro y deformaciones.',
+            'La escalera está amarrada a una estructura de soporte fijo y seguro.'
+          ]
+        }
+      ]
+    },
+    {
+      title: 'Observaciones',
+      fields: [
+        { id: 'obsgen', label: 'Observaciones / Recomendaciones Generales', type: 'textarea', rows: 3 }
       ]
     }
   ]

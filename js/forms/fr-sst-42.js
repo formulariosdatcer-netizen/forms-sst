@@ -1,101 +1,81 @@
 window.SST_FORMS = window.SST_FORMS || {};
 window.SST_FORMS['fr-sst-42'] = {
   id: 'fr-sst-42', code: 'FR-SST-42', version: '01',
-  title: 'Requisitos SST Contratistas', icon: '📋',
+  title: 'Requisitos SST para Contratistas y Proveedores', icon: '📋',
   sections: [
     {
-      title: 'Datos del Contratista',
+      title: '1. Datos Generales del Contratista o Proveedor',
       fields: [
-        { id: 'fecha', label: 'Fecha de verificación', type: 'date', required: true },
-        { id: 'empresa_contratista', label: 'Empresa contratista', type: 'text', required: true },
+        { id: 'razon_social', label: 'Razón Social', type: 'text', required: true },
         { id: 'nit', label: 'NIT', type: 'text', required: true },
-        { id: 'representante', label: 'Representante legal / Responsable SST', type: 'text', required: true },
-        { id: 'contrato', label: 'N° de contrato / Orden de trabajo', type: 'text' },
-        { id: 'objeto_contrato', label: 'Objeto del contrato / Actividad', type: 'text', required: true },
-        { id: 'fecha_inicio', label: 'Fecha inicio de actividades', type: 'date' },
-        { id: 'fecha_fin', label: 'Fecha fin estimada', type: 'date' },
-        { id: 'proyecto', label: 'Proyecto / Obra', type: 'text', required: true }
+        { id: 'direccion', label: 'Dirección', type: 'text' },
+        { id: 'telefono', label: 'Teléfono', type: 'text' },
+        { id: 'celular', label: 'Celular', type: 'text' },
+        { id: 'email', label: 'Email', type: 'text' },
+        { id: 'contacto', label: 'Nombre del Contacto Directo', type: 'text' }
       ]
     },
     {
-      title: 'Documentación Legal y Administrativa',
+      title: 'Datos del Responsable del SG-SST',
+      fields: [
+        { id: 'resp_sst', label: 'Nombre y Cargo del Responsable SST', type: 'text' },
+        { id: 'cel_sst', label: 'Celular Responsable SST', type: 'text' },
+        { id: 'email_sst', label: 'Email Responsable SST', type: 'text' },
+        { id: 'actividades', label: 'Descripción de Actividades y Servicios a Prestar a DATCER S.A.S.', type: 'textarea', rows: 3, required: true }
+      ]
+    },
+    {
+      title: '2. Requerimientos — Empresas con 11 a 50 trabajadores y más de 50',
       fields: [
         {
-          id: 'docs_legales',
+          id: 'reqs_11mas',
           type: 'sino',
           items: [
-            'Cámara de comercio vigente.',
-            'RUT actualizado.',
-            'Certificado de existencia y representación legal.',
-            'Pólizas de seguro (responsabilidad civil, RC extracontractual) vigentes.',
-            'Paz y salvo de parafiscales (últimos 6 meses).',
-            'Certificado de afiliación a ARL de los trabajadores.',
-            'Certificado de afiliación a EPS de los trabajadores.',
-            'Certificado de afiliación a fondo de pensiones.',
-            'Lista de trabajadores vinculados al proyecto.'
+            '¿Se tiene implementado y se mantiene un sistema de gestión de seguridad y salud en el trabajo?',
+            '¿El sistema de gestión de SST está evaluado y certificado por la ARL con mínimo un 85%? (especifique fecha y porcentaje)',
+            'El personal debe contar con exámenes médico-ocupacionales vigentes y acordes al riesgo del cargo según el profesiograma. ¿La empresa cumple con este criterio?',
+            '¿El personal cuenta con afiliaciones o aportes de seguridad social integral vigentes?',
+            'El personal debe contar con EPP de acuerdo al riesgo y dotación estipulada en un Programa de EPP. ¿La empresa cumple?',
+            'El personal cuenta con certificados de idoneidad para las actividades operativas a realizar con DATCER S.A.S. (trabajo en alturas, soldador, CONTE, etc.)',
+            '¿Cuenta con COPASST o Vigía de SST conformado, capacitado y funcionando? (Adjunte soportes)',
+            '¿Cuenta con Comité de Convivencia Laboral conformado, capacitado y funcionando? (Adjunte soportes)',
+            '¿La empresa cuenta con la matriz de identificación de peligros, valoración del riesgo y controles de acuerdo al proyecto o servicio a prestar?',
+            '¿La empresa cuenta con procedimientos e instructivos de actividades de alto riesgo divulgados según el proyecto?',
+            '¿La empresa cuenta con un Programa de capacitación anual en SST, promoción y prevención de riesgos laborales?',
+            '¿La empresa cuenta con un procedimiento para reporte e investigación de accidentes de trabajo?',
+            '¿La empresa cuenta con un programa de protección contra caídas y personal certificado en alturas vigente (Resolución 1409/2012)?',
+            '¿Se dispone de programa de mantenimiento preventivo o correctivo de herramientas y equipos a utilizar en el servicio?',
+            '¿Cuenta con la disposición correcta de residuos sólidos y líquidos generados en el servicio a prestar?',
+            '¿Cuenta con un programa de manipulación y almacenamiento de sustancias químicas según el servicio a prestar?',
+            '¿Cuenta con un programa de inspecciones de seguridad para máquinas, equipos y herramientas con registros del último período?'
           ]
         }
       ]
     },
     {
-      title: 'Sistema de Gestión en SST',
+      title: '3. Requerimientos — Empresas con 10 o menos trabajadores',
       fields: [
         {
-          id: 'sgsst',
+          id: 'reqs_10menos',
           type: 'sino',
           items: [
-            'Tiene SG-SST implementado (resolución 0312/2019).',
-            'Tiene política de SST definida y firmada.',
-            'Tiene matriz de identificación de peligros y valoración de riesgos (IPER) actualizada.',
-            'Tiene plan de emergencias documentado.',
-            'Tiene procedimientos de trabajo seguro para las actividades a ejecutar.',
-            'Tiene programa de inspecciones.',
-            'Tiene estadísticas de accidentalidad de los últimos 12 meses.',
-            'El porcentaje de implementación del SG-SST es >= 60%.'
+            'El personal debe contar con exámenes médico-ocupacionales vigentes y acordes al riesgo del cargo según el profesiograma. ¿La empresa cumple?',
+            '¿El personal cuenta con afiliaciones o aportes de seguridad social integral vigentes?',
+            'El personal debe contar con EPP de acuerdo al riesgo y dotación estipulada en un Programa de EPP. ¿La empresa cumple?',
+            'El personal cuenta con certificados de idoneidad para las actividades operativas a realizar con DATCER S.A.S. (trabajo en alturas, soldador, CONTE, etc.)'
           ]
         }
       ]
     },
     {
-      title: 'Competencia y Entrenamiento del Personal',
+      title: '4. Compromiso del Contratista o Proveedor',
       fields: [
-        {
-          id: 'personal',
-          type: 'sino',
-          items: [
-            'El Responsable o Coordinador SST tiene formación acreditada en SST.',
-            'Los trabajadores tienen inducción en SST vigente.',
-            'El personal de trabajo en alturas tiene certificación vigente (Res. 4272).',
-            'El personal tiene capacitación en el uso adecuado de EPP.',
-            'Existe al menos un trabajador con formación en primeros auxilios.',
-            'Se ha realizado la inducción al SG-SST del contratante (DATCER) antes de iniciar.'
-          ]
-        }
-      ]
-    },
-    {
-      title: 'EPP y Equipos de Seguridad',
-      fields: [
-        {
-          id: 'epp',
-          type: 'sino',
-          items: [
-            'Los trabajadores cuentan con EPP básico (casco, guantes, gafas, botas de seguridad).',
-            'El EPP para trabajo en alturas está certificado (arnés, eslingas, líneas de vida).',
-            'El EPP está en buen estado y es adecuado para la actividad.',
-            'Existe registro de entrega de EPP a cada trabajador.',
-            'Se cuenta con señalización y delimitación para las actividades.'
-          ]
-        }
-      ]
-    },
-    {
-      title: 'Resultado y Decisión',
-      fields: [
-        { id: 'resultado', label: 'Resultado de la verificación', type: 'radio', required: true, options: ['Aprobado — cumple todos los requisitos', 'Aprobado condicionado — pendientes sin impedir inicio', 'No aprobado — no puede iniciar actividades'] },
-        { id: 'pendientes', label: 'Documentos / requisitos pendientes', type: 'textarea', rows: 3 },
-        { id: 'plazo_subsanacion', label: 'Plazo para subsanar pendientes', type: 'date' },
-        { id: 'observaciones', label: 'Observaciones', type: 'textarea', rows: 2 }
+        { id: 'firma1_nombre', label: 'Nombre — Jefe del Área / Proceso', type: 'text' },
+        { id: 'firma1_cedula', label: 'Cédula Jefe de Área', type: 'text' },
+        { id: 'firma1_cargo', label: 'Cargo Jefe de Área', type: 'text' },
+        { id: 'firma2_nombre', label: 'Nombre — Responsable SG-SST', type: 'text' },
+        { id: 'firma2_cedula', label: 'Cédula Responsable SG-SST', type: 'text' },
+        { id: 'firma2_cargo', label: 'Cargo Responsable SG-SST', type: 'text' }
       ]
     }
   ]

@@ -6,9 +6,11 @@ window.SST_FORMS['fr-sst-38'] = {
     {
       title: 'Datos de la Inspección',
       fields: [
-        { id: 'fecha', label: 'Fecha', type: 'date', required: true },
-        { id: 'responsable', label: 'Responsable', type: 'text', required: true },
-        { id: 'area_proyecto', label: 'Área / Proyecto inspeccionado', type: 'text', required: true }
+        { id: 'responsable', label: 'Nombre y Cargo del Responsable de la Inspección', type: 'text', required: true },
+        { id: 'fecha_1', label: 'Fecha — Inspección 1', type: 'date' },
+        { id: 'fecha_2', label: 'Fecha — Inspección 2', type: 'date' },
+        { id: 'fecha_3', label: 'Fecha — Inspección 3', type: 'date' },
+        { id: 'fecha_4', label: 'Fecha — Inspección 4', type: 'date' }
       ]
     },
     {
@@ -17,47 +19,27 @@ window.SST_FORMS['fr-sst-38'] = {
         {
           id: 'senales',
           type: 'table',
-          label: 'Registro de señales inspeccionadas',
-          addLabel: 'Agregar señal',
+          label: 'Registre cada tipo de señalización con cantidad y estado (B=Bueno · M=Malo) para cada inspección',
+          addLabel: 'Agregar tipo de señal',
           minRows: 1,
           columns: [
-            { id: 'tipo', label: 'Tipo de señal', type: 'text', required: true, placeholder: 'Ej: Obligación, Prohibición...' },
-            { id: 'descripcion', label: 'Descripción', type: 'text', placeholder: 'Ej: Uso obligatorio de casco' },
-            { id: 'ubicacion', label: 'Ubicación', type: 'text', required: true },
-            { id: 'cantidad_req', label: 'Cant. requerida', type: 'number' },
-            { id: 'cantidad_exist', label: 'Cant. existente', type: 'number' },
-            { id: 'estado', label: 'Estado (B/R/M)', type: 'text', placeholder: 'B R M' },
-            { id: 'visible', label: 'Visible (SI/NO)', type: 'text' },
-            { id: 'observaciones', label: 'Acción requerida', type: 'text' }
+            { id: 'tipo', label: 'Tipo de señalización', type: 'text', required: true, placeholder: 'Ej: Prohibición, Obligación, Evacuación...' },
+            { id: 'cant_1', label: 'Cant. 1', type: 'number', placeholder: '0' },
+            { id: 'est_1', label: 'Est. 1', type: 'text', placeholder: 'B/M' },
+            { id: 'cant_2', label: 'Cant. 2', type: 'number', placeholder: '0' },
+            { id: 'est_2', label: 'Est. 2', type: 'text', placeholder: 'B/M' },
+            { id: 'cant_3', label: 'Cant. 3', type: 'number', placeholder: '0' },
+            { id: 'est_3', label: 'Est. 3', type: 'text', placeholder: 'B/M' },
+            { id: 'cant_4', label: 'Cant. 4', type: 'number', placeholder: '0' },
+            { id: 'est_4', label: 'Est. 4', type: 'text', placeholder: 'B/M' }
           ]
         }
       ]
     },
     {
-      title: 'Verificación General',
+      title: 'Recomendaciones',
       fields: [
-        {
-          id: 'verificacion',
-          type: 'sino',
-          items: [
-            'Todas las áreas de riesgo están debidamente demarcadas y señalizadas.',
-            'Las señales son visibles desde los ángulos y distancias requeridos.',
-            'Las señales están en buen estado (limpias, sin deterioro, colores legibles).',
-            'Las señales de emergencia (evacuación, extintores, salidas) están en su lugar.',
-            'Las vías de circulación y evacuación están claramente señalizadas.',
-            'Las áreas de almacenamiento de materiales peligrosos están señalizadas.',
-            'Los puntos de riesgo eléctrico tienen señalización adecuada.',
-            'Las señales están a la altura adecuada para ser vistas por todos.',
-            'Se reemplazaron oportunamente las señales dañadas o deterioradas.'
-          ]
-        }
-      ]
-    },
-    {
-      title: 'Resultado',
-      fields: [
-        { id: 'resultado', label: 'Resultado general', type: 'radio', options: ['Conforme', 'Con observaciones — acción correctiva', 'No conforme — acción inmediata'] },
-        { id: 'observaciones', label: 'Observaciones generales', type: 'textarea', rows: 3 }
+        { id: 'recomendaciones', label: 'Recomendaciones Generales', type: 'textarea', rows: 3 }
       ]
     }
   ]

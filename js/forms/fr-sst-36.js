@@ -1,62 +1,59 @@
 window.SST_FORMS = window.SST_FORMS || {};
 window.SST_FORMS['fr-sst-36'] = {
   id: 'fr-sst-36', code: 'FR-SST-36', version: '01',
-  title: 'Inspección de Herramienta', icon: '🔨',
+  title: 'Inspección de Herramientas Menores y Eléctricas', icon: '🔧',
   sections: [
     {
-      title: 'Datos de la Inspección',
+      title: 'Datos del Colaborador',
       fields: [
-        { id: 'fecha', label: 'Fecha de inspección', type: 'date', required: true },
-        { id: 'responsable', label: 'Responsable de la inspección', type: 'text', required: true },
-        { id: 'area', label: 'Área / Proyecto', type: 'text', required: true }
+        { id: 'nombre_colaborador', label: 'Nombre del Colaborador', type: 'text', required: true },
+        { id: 'cargo', label: 'Cargo', type: 'text' },
+        { id: 'inspector', label: 'Inspector de SST', type: 'text' },
+        { id: 'cedula', label: 'Cédula', type: 'text' },
+        { id: 'proyecto', label: 'Proyecto / Área', type: 'text', required: true },
+        { id: 'mes', label: 'Mes de Inspección', type: 'month', required: true }
       ]
     },
     {
-      title: 'Herramientas Inspeccionadas',
+      title: 'Herramientas Menores',
       fields: [
         {
-          id: 'herramientas',
+          id: 'menores',
           type: 'table',
-          label: 'Registro de herramientas',
+          label: 'Inspección de herramientas menores — B = Buen Estado · M = Mal Estado · NA = No Aplica',
           addLabel: 'Agregar herramienta',
           minRows: 1,
           columns: [
-            { id: 'nombre', label: 'Nombre herramienta', type: 'text', required: true },
-            { id: 'marca', label: 'Marca', type: 'text' },
-            { id: 'serial', label: 'N° Serie / Placa', type: 'text' },
-            { id: 'estado', label: 'Estado (B/R/M)', type: 'text', placeholder: 'B=Bueno R=Regular M=Malo' },
-            { id: 'apto', label: 'Apto para uso', type: 'text', placeholder: 'SI / NO' },
-            { id: 'observaciones', label: 'Observaciones / Acción', type: 'text' }
+            { id: 'tipo', label: 'Tipo de herramienta', type: 'text', required: true, placeholder: 'Ej: ALICATES, MACETA, MARTILLO...' },
+            { id: 'aspecto', label: 'Aspecto inspeccionado', type: 'text', placeholder: 'Ej: MORDAZAS, MANGO, CABEZA...' },
+            { id: 'estado', label: 'Estado (B/M/NA)', type: 'text', placeholder: 'B / M / NA' },
+            { id: 'observaciones', label: 'Observaciones', type: 'text' }
           ]
         }
       ]
     },
     {
-      title: 'Lista de Verificación',
+      title: 'Herramientas Eléctricas',
       fields: [
         {
-          id: 'verificacion',
-          type: 'sino',
-          items: [
-            'Las herramientas están en buen estado general (sin fracturas, grietas o deformaciones).',
-            'Los mangos y empuñaduras están en buen estado y bien asegurados.',
-            'Las herramientas eléctricas tienen cables y enchufes en buen estado.',
-            'Las herramientas de corte tienen filo adecuado y sin daños.',
-            'Las herramientas están limpias y libres de grasa en zonas de agarre.',
-            'Se cuenta con protecciones o guardas donde se requieren.',
-            'Las herramientas están almacenadas correctamente cuando no se usan.',
-            'El personal está capacitado para usar las herramientas correctamente.',
-            'No hay herramientas fabricadas artesanalmente o inadecuadas para la tarea.'
+          id: 'electricas',
+          type: 'table',
+          label: 'Inspección de herramientas eléctricas — B = Buen Estado · M = Mal Estado · NA = No Aplica',
+          addLabel: 'Agregar herramienta eléctrica',
+          minRows: 1,
+          columns: [
+            { id: 'tipo', label: 'Tipo de herramienta', type: 'text', required: true, placeholder: 'Ej: TALADRO, ESMERIL, PULIDORA...' },
+            { id: 'aspecto', label: 'Aspecto inspeccionado', type: 'text', placeholder: 'Ej: CONEXIÓN ELÉCTRICA, MANGO, GUARDA...' },
+            { id: 'estado', label: 'Estado (B/M/NA)', type: 'text', placeholder: 'B / M / NA' },
+            { id: 'observaciones', label: 'Observaciones', type: 'text' }
           ]
         }
       ]
     },
     {
-      title: 'Resultado y Acciones',
+      title: 'Observaciones Generales',
       fields: [
-        { id: 'resultado', label: 'Resultado general de la inspección', type: 'radio', options: ['Apto', 'Requiere mantenimiento', 'No apto — retirar de servicio'] },
-        { id: 'acciones_correctivas', label: 'Acciones correctivas a tomar', type: 'textarea', rows: 3 },
-        { id: 'observaciones', label: 'Observaciones generales', type: 'textarea', rows: 2 }
+        { id: 'obsgen', label: 'Observaciones Generales del Mes', type: 'textarea', rows: 3 }
       ]
     }
   ]
