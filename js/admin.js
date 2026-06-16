@@ -371,48 +371,190 @@ async function deleteRecord(index) {
 async function registrarDevolucion(index) {
   const record = window._filteredRecords[index];
   if (!record) return;
-  const adminNombre = prompt('Tu nombre completo (quien recibe la devolución):');
-  if (!adminNombre || !adminNombre.trim()) return;
-  // Duplicate record as devolución
-  const devData = Object.assign({}, record.form_data, {
-    tipo: 'devolucion',
-    original_id: record.id,
-    estado_entrega: 'devolucion',
-    firma_pin: undefined,
-    firma_admin_devolucion: adminNombre.trim(),
-    fecha_devolucion: new Date().toISOString()
+  const items = (record.form_data && Array.isArray(record.form_data.entregas)) ? record.form_data.entregas : [];
+  abrirModalAdmin({
+    titulo: '🔄 Registrar devolución',
+    items, siLabel: 'Devuelto', noLabel: 'No devuelto',
+    onConfirm: async ({ nombre, sigImg, itemEstados }) => {
+      const devData = Object.assign({}, record.form_data, {
+        tipo: 'devolucion', original_id: record.id, estado_entrega: 'devolucion',
+        firma_admin_devolucion: nombre, firma_admin_devolucion_img: sigImg,
+        fecha_devolucion: new Date().toISOString(),
+        entregas: items.map((e, i) => ({ ...e, estado_devolucion: itemEstados[i] === 'si' ? 'devuelto' : 'no_devuelto' }))
+      });
+      delete devData.firma_pin;
+      await DB.save('fr-sst-43', {
+        nombres: record.worker_name || '', apellidos: record.worker_lastname || '',
+        cedula: record.worker_doc || '', cargo: record.worker_role || '', empresa: record.worker_company || ''
+      }, devData);
+      const updatedData = Object.assign({}, record.form_data, { estado_entrega: 'devolucion' });
+      await DB.updateFormData(record.id, updatedData);
+      _cloudRecords = []; await loadFromCloud();
+      showToast('✅ Devolución registrada');
+    }
   });
-  delete devData.firma_pin;
-  await DB.save('fr-sst-43', {
-    nombres: record.worker_name || '',
-    apellidos: record.worker_lastname || '',
-    cedula: record.worker_doc || '',
-    cargo: record.worker_role || '',
-    empresa: record.worker_company || ''
-  }, devData);
-  // Mark original as devuelto
-  const updatedData = Object.assign({}, record.form_data, { estado_entrega: 'devolucion' });
-  await DB.updateFormData(record.id, updatedData);
-  const idx = _cloudRecords.findIndex(r => r.id === record.id);
-  if (idx !== -1) _cloudRecords[idx] = Object.assign({}, _cloudRecords[idx], { form_data: updatedData });
-  _cloudRecords = [];
-  await loadFromCloud();
-  showToast('✅ Devolución registrada');
 }
 
 async function marcarUsadoObra(index) {
   const record = window._filteredRecords[index];
   if (!record) return;
-  const adminNombre = prompt('Tu nombre completo (quien autoriza el uso en obra):');
-  if (!adminNombre || !adminNombre.trim()) return;
-  const updatedData = Object.assign({}, record.form_data, {
-    estado_entrega: 'usado_en_obra',
-    firma_admin_obra: adminNombre.trim(),
-    fecha_obra: new Date().toISOString()
+  const items = (record.form_data && Array.isArray(record.form_data.entregas)) ? record.form_data.entregas : [];
+  abrirModalAdmin({
+    titulo: '🏗 Marcar como usado en obra',
+    items, siLabel: 'Usado', noLabel: 'No usado',
+    onConfirm: async ({ nombre, sigImg, itemEstados }) => {
+      const updatedData = Object.assign({}, record.form_data, {
+        estado_entrega: 'usado_en_obra', firma_admin_obra: nombre, firma_admin_obra_img: sigImg,
+        fecha_obra: new Date().toISOString(),
+        entregas: items.map((e, i) => ({ ...e, estado_uso: itemEstados[i] === 'si' ? 'usado' : 'no_usado' }))
+      });
+      await DB.updateFormData(record.id, updatedData);
+      const idx = _cloudRecords.findIndex(r => r.id === record.id);
+      if (idx !== -1) _cloudRecords[idx] = Object.assign({}, _cloudRecords[idx], { form_data: updatedData });
+      renderList(); showToast('✅ Marcado como usado en obra');
+    }
   });
-  await DB.updateFormData(record.id, updatedData);
-  const idx = _cloudRecords.findIndex(r => r.id === record.id);
-  if (idx !== -1) _cloudRecords[idx] = Object.assign({}, _cloudRecords[idx], { form_data: updatedData });
-  renderList();
-  showToast('✅ Marcado como usado en obra');
+}
+
+// ── Admin signature modal ─────────────────────────────────
+let _mDrawing = false, _mLx = 0, _mLy = 0, _mHasDrawn = false;
+let _mItemEstados = [], _mSigMode = 'draw', _mUploadedSig = null, _mOnConfirm = null;
+
+function abrirModalAdmin({ titulo, items, siLabel, noLabel, onConfirm }) {
+  const ex = document.getElementById('_asigmodal'); if (ex) ex.remove();
+  _mItemEstados = items.map(() => 'si');
+  _mSigMode = 'draw'; _mUploadedSig = null; _mHasDrawn = false; _mOnConfirm = onConfirm;
+
+  const itemsHtml = items.length ? items.map((it, i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0">
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:14px">${esc(it.epp || '—')}</div>
+        <div style="font-size:12px;color:#888">Cant: ${esc(String(it.cantidad || '—'))}</div>
+      </div>
+      <div style="display:flex;border:1.5px solid #e0e0e0;border-radius:8px;overflow:hidden">
+        <button id="_msi${i}" onclick="_mSetEst(${i},'si')"
+          style="padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:#e8f5e9;color:#1b5e20">✓ ${siLabel}</button>
+        <button id="_mno${i}" onclick="_mSetEst(${i},'no')"
+          style="padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:#fff;color:#666">✗ ${noLabel}</button>
+      </div>
+    </div>`).join('') : '<p style="color:#888;font-size:13px;padding:8px 0">Sin ítems registrados</p>';
+
+  document.body.insertAdjacentHTML('beforeend', `
+    <div id="_asigmodal" style="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;overflow-y:auto;display:flex;align-items:flex-end;justify-content:center">
+      <div style="background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:640px;padding:20px 20px 36px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h3 style="font-size:16px;color:#212121">${titulo}</h3>
+          <button onclick="_mCerrar()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1">✕</button>
+        </div>
+        ${itemsHtml}
+        <div style="margin:16px 0 12px">
+          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">Tu nombre completo *</label>
+          <input id="_mnombre" type="text" style="width:100%;padding:10px 12px;border:2px solid #e0e0e0;border-radius:8px;font-size:15px;box-sizing:border-box" placeholder="Nombre completo del responsable">
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <button id="_mtdraw" onclick="_mSwitchTab('draw')" style="flex:1;padding:9px;border:2px solid #E87722;background:#fff3e0;border-radius:8px;cursor:pointer;font-size:13px;color:#E87722;font-weight:700">✏️ Firmar</button>
+          <button id="_mtupload" onclick="_mSwitchTab('upload')" style="flex:1;padding:9px;border:2px solid #e0e0e0;background:#fff;border-radius:8px;cursor:pointer;font-size:13px;color:#666">📎 Subir imagen</button>
+        </div>
+        <div id="_mdrawarea" style="border:2px dashed #ccc;border-radius:10px;overflow:hidden;background:#fafafa;position:relative;margin-bottom:12px">
+          <canvas id="_mcanvas" style="display:block;width:100%;height:130px;cursor:crosshair;touch-action:none"></canvas>
+          <div id="_mcanvasph" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:13px;pointer-events:none">✍️ Firma aquí con el dedo o cursor</div>
+          <button onclick="_mClearCanvas()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.12);border:none;border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer">✕ Borrar</button>
+        </div>
+        <div id="_muploadarea" style="display:none;margin-bottom:12px">
+          <label style="display:block;padding:11px;border:2px solid #e0e0e0;border-radius:8px;text-align:center;cursor:pointer;font-size:13px;color:#666">
+            📎 Seleccionar imagen de firma
+            <input type="file" accept="image/*" style="display:none" onchange="_mHandleUpload(this)">
+          </label>
+          <img id="_muploadpreview" style="max-width:100%;max-height:120px;display:none;margin-top:8px;border-radius:6px">
+        </div>
+        <button onclick="_mConfirmar()" style="width:100%;padding:14px;background:#E87722;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px">✅ Confirmar</button>
+        <button onclick="_mCerrar()" style="width:100%;padding:12px;background:#f5f5f5;color:#555;border:none;border-radius:10px;font-size:14px;cursor:pointer">Cancelar</button>
+      </div>
+    </div>`);
+  document.body.style.overflow = 'hidden';
+  setTimeout(_mSetupCanvas, 60);
+}
+
+function _mCerrar() {
+  const m = document.getElementById('_asigmodal'); if (m) m.remove();
+  document.body.style.overflow = '';
+}
+
+function _mSetEst(i, v) {
+  _mItemEstados[i] = v;
+  const si = document.getElementById('_msi' + i), no = document.getElementById('_mno' + i);
+  si.style.background = v === 'si' ? '#e8f5e9' : '#fff'; si.style.color = v === 'si' ? '#1b5e20' : '#666';
+  no.style.background = v === 'no' ? '#ffebee' : '#fff'; no.style.color = v === 'no' ? '#b71c1c' : '#666';
+}
+
+function _mSwitchTab(mode) {
+  _mSigMode = mode;
+  const td = document.getElementById('_mtdraw'), tu = document.getElementById('_mtupload');
+  td.style.border = mode === 'draw' ? '2px solid #E87722' : '2px solid #e0e0e0';
+  td.style.background = mode === 'draw' ? '#fff3e0' : '#fff';
+  td.style.color = mode === 'draw' ? '#E87722' : '#666';
+  tu.style.border = mode === 'upload' ? '2px solid #E87722' : '2px solid #e0e0e0';
+  tu.style.background = mode === 'upload' ? '#fff3e0' : '#fff';
+  tu.style.color = mode === 'upload' ? '#E87722' : '#666';
+  document.getElementById('_mdrawarea').style.display = mode === 'draw' ? 'block' : 'none';
+  document.getElementById('_muploadarea').style.display = mode === 'upload' ? 'block' : 'none';
+}
+
+function _mSetupCanvas() {
+  const canvas = document.getElementById('_mcanvas'); if (!canvas) return;
+  canvas.width = canvas.offsetWidth || 300; canvas.height = 130;
+  const ctx = canvas.getContext('2d');
+  ctx.strokeStyle = '#111'; ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const pos = e => {
+    const r = canvas.getBoundingClientRect(), s = e.touches ? e.touches[0] : e;
+    return [(s.clientX - r.left) * canvas.width / r.width, (s.clientY - r.top) * canvas.height / r.height];
+  };
+  canvas.addEventListener('mousedown', e => { _mDrawing = true; [_mLx, _mLy] = pos(e); });
+  canvas.addEventListener('mousemove', e => {
+    if (!_mDrawing) return; const [x, y] = pos(e), c = canvas.getContext('2d');
+    c.beginPath(); c.moveTo(_mLx, _mLy); c.lineTo(x, y); c.stroke(); [_mLx, _mLy] = [x, y]; _mHasDrawn = true;
+    const ph = document.getElementById('_mcanvasph'); if (ph) ph.style.display = 'none';
+  });
+  canvas.addEventListener('mouseup', () => _mDrawing = false);
+  canvas.addEventListener('mouseleave', () => _mDrawing = false);
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); _mDrawing = true; [_mLx, _mLy] = pos(e); }, { passive: false });
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault(); if (!_mDrawing) return; const [x, y] = pos(e), c = canvas.getContext('2d');
+    c.beginPath(); c.moveTo(_mLx, _mLy); c.lineTo(x, y); c.stroke(); [_mLx, _mLy] = [x, y]; _mHasDrawn = true;
+    const ph = document.getElementById('_mcanvasph'); if (ph) ph.style.display = 'none';
+  }, { passive: false });
+  canvas.addEventListener('touchend', () => _mDrawing = false);
+}
+
+function _mClearCanvas() {
+  const c = document.getElementById('_mcanvas'); if (!c) return;
+  c.getContext('2d').clearRect(0, 0, c.width, c.height); _mHasDrawn = false;
+  const ph = document.getElementById('_mcanvasph'); if (ph) ph.style.display = 'flex';
+}
+
+function _mHandleUpload(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _mUploadedSig = e.target.result;
+    const p = document.getElementById('_muploadpreview'); if (p) { p.src = _mUploadedSig; p.style.display = 'block'; }
+  };
+  reader.readAsDataURL(file);
+}
+
+function _mGetSig() {
+  if (_mSigMode === 'draw') { if (!_mHasDrawn) return null; const c = document.getElementById('_mcanvas'); return c ? c.toDataURL('image/png') : null; }
+  return _mUploadedSig || null;
+}
+
+async function _mConfirmar() {
+  const nombreEl = document.getElementById('_mnombre');
+  const nombre = nombreEl ? nombreEl.value.trim() : '';
+  if (!nombre) { showToast('Ingresa tu nombre completo'); return; }
+  const sig = _mGetSig();
+  if (!sig) { showToast(_mSigMode === 'draw' ? 'Dibuja tu firma' : 'Sube una imagen de firma'); return; }
+  const btn = document.querySelector('#_asigmodal button[onclick="_mConfirmar()"]');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Guardando...'; }
+  try { await _mOnConfirm({ nombre, sigImg: sig, itemEstados: [..._mItemEstados] }); }
+  finally { _mCerrar(); }
 }

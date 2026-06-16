@@ -7,6 +7,24 @@
   <title>Firmar recepción | SST DATCER</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="css/app.css">
+  <style>
+    .sig-wrap { border: 2px dashed #ccc; border-radius: 10px; overflow: hidden; background: #fafafa; position: relative; }
+    #sig-canvas { display: block; width: 100%; height: 150px; cursor: crosshair; touch-action: none; }
+    .sig-placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #bbb; font-size: 13px; pointer-events: none; gap: 6px; }
+    .sig-clear { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,.12); border: none; border-radius: 6px; padding: 3px 10px; font-size: 11px; cursor: pointer; color: #333; }
+    .sig-tabs { display: flex; gap: 8px; margin-bottom: 10px; }
+    .sig-tab { flex: 1; padding: 9px 6px; border: 2px solid #e0e0e0; background: #fff; border-radius: 8px; cursor: pointer; font-size: 13px; color: #666; font-weight: 500; transition: .15s; }
+    .sig-tab.active { border-color: #E87722; background: #fff3e0; color: #E87722; font-weight: 700; }
+    .item-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+    .item-info { flex: 1; }
+    .item-epp { font-weight: 600; font-size: 14px; }
+    .item-meta { font-size: 12px; color: #888; margin-top: 2px; }
+    .item-toggle { display: flex; border: 1.5px solid #e0e0e0; border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+    .itbtn { padding: 7px 13px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; background: #fff; color: #777; transition: .12s; }
+    .itbtn.si { background: #e8f5e9; color: #1b5e20; }
+    .itbtn.no { background: #ffebee; color: #b71c1c; }
+    #sig-upload-preview { max-width: 100%; max-height: 140px; display: none; margin-top: 10px; border-radius: 8px; border: 1px solid #eee; }
+  </style>
 </head>
 <body>
   <header class="app-header">
@@ -14,58 +32,84 @@
     <span class="header-title">Confirmación de Recepción</span>
   </header>
 
-  <div class="offline-banner" id="offline-banner">
-    📵 Sin conexión — la firma se guardará cuando vuelva el internet
-  </div>
+  <div class="offline-banner" id="offline-banner">📵 Sin conexión — la firma se guardará cuando vuelva el internet</div>
 
-  <div class="container" id="app-container" style="padding:16px;max-width:640px;margin:0 auto">
+  <div class="container" style="padding:16px;max-width:640px;margin:0 auto">
 
-    <!-- PIN entry -->
+    <!-- PIN -->
     <div id="pin-screen">
       <div class="form-section" style="margin-top:16px">
         <div class="section-header">Ingresar PIN de entrega</div>
         <div class="section-body">
-          <p style="color:#555;margin-bottom:16px;font-size:14px">
-            El responsable de SST te entregó un PIN de 6 dígitos. Ingrésalo aquí para confirmar que recibiste los elementos.
-          </p>
+          <p style="color:#666;font-size:14px;margin-bottom:16px">El responsable de SST te entregó un PIN de 6 dígitos. Ingrésalo para confirmar la recepción.</p>
           <div class="field-group">
             <label class="field-label">PIN de 6 dígitos</label>
-            <input type="number" id="pin-input" class="field-input"
-                   placeholder="000000" inputmode="numeric" maxlength="6"
-                   style="font-size:28px;letter-spacing:6px;text-align:center;font-weight:700">
+            <input type="number" id="pin-input" class="field-input" placeholder="000000" inputmode="numeric"
+                   style="font-size:30px;letter-spacing:8px;text-align:center;font-weight:800">
           </div>
-          <button class="btn btn-primary" id="pin-btn" onclick="buscarPorPin()" style="margin-top:12px;width:100%">
-            Buscar →
-          </button>
+          <button class="btn btn-primary" id="pin-btn" onclick="buscarPorPin()" style="margin-top:14px;width:100%">Buscar →</button>
           <div id="pin-error" style="color:#c62828;margin-top:10px;font-size:14px;display:none;text-align:center"></div>
         </div>
       </div>
     </div>
 
-    <!-- Entrega info + signature -->
+    <!-- Items + firma -->
     <div id="firma-screen" style="display:none">
-      <div id="entrega-info"></div>
       <div class="form-section">
-        <div class="section-header">Confirmar recepción con tu nombre</div>
+        <div class="section-header">Elementos a recibir</div>
         <div class="section-body">
-          <div class="field-group">
-            <label class="field-label">Nombre completo (firma de recibido) <span class="req">*</span></label>
-            <input type="text" id="firma-nombre" class="field-input"
-                   placeholder="Escribe tu nombre completo" autocomplete="name">
+          <p style="font-size:13px;color:#666;margin-bottom:10px">Confirma cada ítem: si lo recibiste o no.</p>
+          <div id="items-list"></div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="section-header">Tu firma de recibido</div>
+        <div class="section-body">
+          <div class="field-group" style="margin-bottom:14px">
+            <label class="field-label">Nombre completo <span class="req">*</span></label>
+            <input type="text" id="firma-nombre" class="field-input" placeholder="Escribe tu nombre completo" autocomplete="name">
           </div>
-          <button class="btn btn-primary" id="firma-btn" onclick="confirmarFirma()" style="margin-top:12px;width:100%">
+
+          <div class="sig-tabs">
+            <button class="sig-tab active" id="tab-draw" onclick="switchTab('draw')">✏️ Firmar con dedo / cursor</button>
+            <button class="sig-tab" id="tab-upload" onclick="switchTab('upload')">📎 Subir imagen de firma</button>
+          </div>
+
+          <!-- Canvas -->
+          <div id="area-draw">
+            <div class="sig-wrap">
+              <canvas id="sig-canvas"></canvas>
+              <div class="sig-placeholder" id="sig-ph">✍️ Firma aquí con el dedo o el cursor</div>
+              <button class="sig-clear" onclick="clearCanvas()">✕ Borrar</button>
+            </div>
+          </div>
+
+          <!-- Upload -->
+          <div id="area-upload" style="display:none">
+            <label class="btn btn-secondary" style="display:block;text-align:center;cursor:pointer;margin-bottom:8px">
+              📎 Seleccionar imagen de firma
+              <input type="file" id="sig-file" accept="image/*" style="display:none" onchange="handleUpload(this)">
+            </label>
+            <div style="text-align:center">
+              <img id="sig-upload-preview">
+              <div id="sig-upload-name" style="font-size:12px;color:#888;margin-top:4px"></div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" onclick="confirmarFirma()" style="margin-top:16px;width:100%">
             ✅ Confirmar que recibí los elementos
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Success -->
+    <!-- Éxito -->
     <div id="success-screen" style="display:none">
       <div class="success-screen">
         <div class="success-icon">✅</div>
         <div class="success-title">¡Recepción confirmada!</div>
-        <div class="success-subtitle">Has confirmado la recepción de los elementos de protección personal. El responsable de SST puede ver esta confirmación en el panel administrativo.</div>
+        <div class="success-subtitle">Has confirmado la recepción. El responsable de SST verá tu firma en el panel.</div>
         <a href="index.html" class="btn btn-primary" style="margin-top:20px">Ir al inicio</a>
       </div>
     </div>
@@ -79,108 +123,177 @@
   <script src="js/db.js"></script>
   <script>
     let _record = null;
+    let _sigMode = 'draw';
+    let _uploadedSig = null;
+    let _hasDrawn = false;
+    let _drawing = false, _lx = 0, _ly = 0;
+    let _itemEstados = [];
 
     document.addEventListener('DOMContentLoaded', () => {
       if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
       DB.init();
       setupOnlineStatus();
       const urlPin = new URLSearchParams(window.location.search).get('pin');
-      if (urlPin) {
-        document.getElementById('pin-input').value = urlPin;
-        buscarPorPin();
-      }
-      document.getElementById('pin-input').addEventListener('keydown', e => {
-        if (e.key === 'Enter') buscarPorPin();
-      });
+      if (urlPin) { document.getElementById('pin-input').value = urlPin; buscarPorPin(); }
+      document.getElementById('pin-input').addEventListener('keydown', e => { if (e.key === 'Enter') buscarPorPin(); });
     });
 
     function setupOnlineStatus() {
-      const banner = document.getElementById('offline-banner');
-      const update = () => navigator.onLine ? banner.classList.remove('show') : banner.classList.add('show');
-      update();
-      window.addEventListener('online', update);
-      window.addEventListener('offline', update);
+      const b = document.getElementById('offline-banner');
+      const u = () => navigator.onLine ? b.classList.remove('show') : b.classList.add('show');
+      u(); window.addEventListener('online', u); window.addEventListener('offline', u);
     }
 
+    // ── PIN ───────────────────────────────────────────────────
     async function buscarPorPin() {
       const pin = String(document.getElementById('pin-input').value).trim();
-      const errEl = document.getElementById('pin-error');
-      errEl.style.display = 'none';
-      if (!pin || pin.length < 4) { mostrarError('Ingresa el PIN completo (6 dígitos)'); return; }
+      document.getElementById('pin-error').style.display = 'none';
+      if (!pin || pin.length < 4) { showErr('Ingresa el PIN completo (6 dígitos)'); return; }
       const btn = document.getElementById('pin-btn');
       btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Buscando...';
       _record = await DB.fetchByPin(pin);
       btn.disabled = false; btn.textContent = 'Buscar →';
-      if (!_record) { mostrarError('PIN no encontrado. Verifica el número con el responsable de SST.'); return; }
+      if (!_record) { showErr('PIN no encontrado. Verifica el número con el responsable de SST.'); return; }
       const estado = _record.form_data && _record.form_data.estado_entrega;
-      if (estado && estado !== 'pendiente_firma') {
-        mostrarError('Este formulario ya fue procesado anteriormente (estado: ' + estado + ').');
-        return;
-      }
-      mostrarEntrega();
+      if (estado && estado !== 'pendiente_firma') { showErr('Este formulario ya fue procesado (estado: ' + estado + ').'); return; }
+      mostrarFirmaScreen();
     }
 
-    function mostrarEntrega() {
-      const d = _record.form_data || {};
+    // ── Items ─────────────────────────────────────────────────
+    function mostrarFirmaScreen() {
+      const entregas = (_record.form_data && Array.isArray(_record.form_data.entregas)) ? _record.form_data.entregas : [];
+      _itemEstados = entregas.map(() => 'recibido');
       const nombre = ((_record.worker_name || '') + ' ' + (_record.worker_lastname || '')).trim() || '—';
-      const entregas = Array.isArray(d.entregas) ? d.entregas : [];
-      const rows = entregas.map(e =>
-        `<tr><td>${e.fecha || '—'}</td><td>${e.epp || '—'}</td><td style="text-align:center">${e.cantidad || '—'}</td><td>${e.observaciones || ''}</td></tr>`
-      ).join('') || '<tr><td colspan="4" style="text-align:center;color:#888">Sin elementos registrados</td></tr>';
 
-      document.getElementById('entrega-info').innerHTML = `
-        <div class="form-section">
-          <div class="section-header">Elementos que recibes</div>
-          <div class="section-body">
-            <div class="worker-box" style="margin-bottom:12px">
-              <div><div class="worker-field-label">Trabajador</div><div class="worker-field-value">${esc(nombre)}</div></div>
-              <div><div class="worker-field-label">Cédula</div><div class="worker-field-value">${esc(_record.worker_doc || '—')}</div></div>
-              <div><div class="worker-field-label">Cargo</div><div class="worker-field-value">${esc(_record.worker_role || '—')}</div></div>
+      document.getElementById('items-list').innerHTML = `
+        <div style="background:#f5f5f5;border-radius:8px;padding:10px;margin-bottom:12px;font-size:13px">
+          <strong>Trabajador:</strong> ${esc(nombre)} &nbsp;·&nbsp; <strong>Cédula:</strong> ${esc(_record.worker_doc || '—')}
+        </div>
+        ${entregas.length ? entregas.map((e, i) => `
+          <div class="item-row">
+            <div class="item-info">
+              <div class="item-epp">${esc(e.epp || '—')}</div>
+              <div class="item-meta">Cantidad: ${esc(String(e.cantidad || '—'))}${e.fecha ? ' · ' + esc(e.fecha) : ''}</div>
             </div>
-            <div style="overflow-x:auto">
-              <table class="detail-table">
-                <thead><tr><th>Fecha</th><th>EPP / Dotación</th><th>Cant</th><th>Observaciones</th></tr></thead>
-                <tbody>${rows}</tbody>
-              </table>
+            <div class="item-toggle">
+              <button class="itbtn si" id="ibtn-si-${i}" onclick="setEstado(${i},'recibido')">✓ Recibido</button>
+              <button class="itbtn" id="ibtn-no-${i}" onclick="setEstado(${i},'no_recibido')">✗ No recibido</button>
             </div>
-          </div>
-        </div>`;
+          </div>`).join('') : '<p style="color:#888;text-align:center;padding:12px 0">Sin elementos registrados</p>'}`;
+
       document.getElementById('pin-screen').style.display = 'none';
       document.getElementById('firma-screen').style.display = 'block';
       window.scrollTo(0, 0);
+      setTimeout(initCanvas, 80);
     }
 
+    function setEstado(i, v) {
+      _itemEstados[i] = v;
+      document.getElementById('ibtn-si-' + i).className = 'itbtn' + (v === 'recibido' ? ' si' : '');
+      document.getElementById('ibtn-no-' + i).className = 'itbtn' + (v === 'no_recibido' ? ' no' : '');
+    }
+
+    // ── Canvas ────────────────────────────────────────────────
+    function initCanvas() {
+      const canvas = document.getElementById('sig-canvas');
+      if (!canvas) return;
+      canvas.width = canvas.offsetWidth || 340;
+      canvas.height = 150;
+      const ctx = canvas.getContext('2d');
+      ctx.strokeStyle = '#111'; ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+      const pos = e => {
+        const r = canvas.getBoundingClientRect();
+        const s = e.touches ? e.touches[0] : e;
+        return [(s.clientX - r.left) * canvas.width / r.width,
+                (s.clientY - r.top) * canvas.height / r.height];
+      };
+
+      canvas.addEventListener('mousedown', e => { _drawing = true; [_lx, _ly] = pos(e); });
+      canvas.addEventListener('mousemove', e => {
+        if (!_drawing) return;
+        const [x, y] = pos(e), c = canvas.getContext('2d');
+        c.beginPath(); c.moveTo(_lx, _ly); c.lineTo(x, y); c.stroke();
+        [_lx, _ly] = [x, y]; _hasDrawn = true;
+        document.getElementById('sig-ph').style.display = 'none';
+      });
+      canvas.addEventListener('mouseup', () => _drawing = false);
+      canvas.addEventListener('mouseleave', () => _drawing = false);
+      canvas.addEventListener('touchstart', e => { e.preventDefault(); _drawing = true; [_lx, _ly] = pos(e); }, { passive: false });
+      canvas.addEventListener('touchmove', e => {
+        e.preventDefault(); if (!_drawing) return;
+        const [x, y] = pos(e), c = canvas.getContext('2d');
+        c.beginPath(); c.moveTo(_lx, _ly); c.lineTo(x, y); c.stroke();
+        [_lx, _ly] = [x, y]; _hasDrawn = true;
+        document.getElementById('sig-ph').style.display = 'none';
+      }, { passive: false });
+      canvas.addEventListener('touchend', () => _drawing = false);
+    }
+
+    function clearCanvas() {
+      const c = document.getElementById('sig-canvas');
+      c.getContext('2d').clearRect(0, 0, c.width, c.height);
+      _hasDrawn = false;
+      document.getElementById('sig-ph').style.display = 'flex';
+    }
+
+    // ── Tabs ──────────────────────────────────────────────────
+    function switchTab(mode) {
+      _sigMode = mode;
+      document.getElementById('tab-draw').className = 'sig-tab' + (mode === 'draw' ? ' active' : '');
+      document.getElementById('tab-upload').className = 'sig-tab' + (mode === 'upload' ? ' active' : '');
+      document.getElementById('area-draw').style.display = mode === 'draw' ? 'block' : 'none';
+      document.getElementById('area-upload').style.display = mode === 'upload' ? 'block' : 'none';
+    }
+
+    function handleUpload(input) {
+      const file = input.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        _uploadedSig = e.target.result;
+        const p = document.getElementById('sig-upload-preview');
+        p.src = _uploadedSig; p.style.display = 'block';
+        document.getElementById('sig-upload-name').textContent = file.name;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function getSig() {
+      if (_sigMode === 'draw') return _hasDrawn ? document.getElementById('sig-canvas').toDataURL('image/png') : null;
+      return _uploadedSig || null;
+    }
+
+    // ── Submit ────────────────────────────────────────────────
     async function confirmarFirma() {
       const nombre = document.getElementById('firma-nombre').value.trim();
-      if (!nombre) { showToast('Ingresa tu nombre completo para firmar'); return; }
-      const btn = document.getElementById('firma-btn');
+      if (!nombre) { showToast('Ingresa tu nombre completo'); return; }
+      const sig = getSig();
+      if (!sig) { showToast(_sigMode === 'draw' ? 'Dibuja tu firma en el recuadro' : 'Sube una imagen de tu firma'); return; }
+
+      const btn = document.querySelector('#firma-screen .btn-primary');
       btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Guardando...';
-      const newData = Object.assign({}, _record.form_data, {
+
+      const entregas = (_record.form_data && Array.isArray(_record.form_data.entregas))
+        ? _record.form_data.entregas.map((e, i) => ({ ...e, estado_recepcion: _itemEstados[i] || 'recibido' })) : [];
+
+      await DB.updateFormData(_record.id, Object.assign({}, _record.form_data, {
+        entregas,
         firma_trabajador: nombre,
+        firma_trabajador_img: sig,
         estado_entrega: 'firmado',
         fecha_firma: new Date().toISOString()
-      });
-      await DB.updateFormData(_record.id, newData);
+      }));
+
       document.getElementById('firma-screen').style.display = 'none';
       document.getElementById('success-screen').style.display = 'block';
       window.scrollTo(0, 0);
     }
 
-    function esc(str) {
-      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
-
-    let _toastTimer;
-    function showToast(msg) {
-      const el = document.getElementById('toast');
-      el.textContent = msg; el.classList.add('show');
-      clearTimeout(_toastTimer);
-      _toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
-    }
-    function mostrarError(msg) {
-      const el = document.getElementById('pin-error');
-      el.textContent = msg; el.style.display = 'block';
-    }
+    // ── Utils ─────────────────────────────────────────────────
+    function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    let _tt;
+    function showToast(m) { const e = document.getElementById('toast'); e.textContent = m; e.classList.add('show'); clearTimeout(_tt); _tt = setTimeout(() => e.classList.remove('show'), 3200); }
+    function showErr(m) { const e = document.getElementById('pin-error'); e.textContent = m; e.style.display = 'block'; }
   </script>
 </body>
 </html>

@@ -130,11 +130,20 @@
     doc.text(legalLines, M + 3, y + 5);
     y += 17;
 
-    // Deliveries table — FIRMA DE RECIBIDO comes from firma_trabajador (signed via firma.html)
+    // Deliveries table — per-item status + signature image block below
     const rawRows = Array.isArray(data.entregas) ? data.entregas : [];
-    const firmaTexto = data.firma_trabajador || '';
-    const tableBody = rawRows.map((r, idx) => [r.fecha || '', r.epp || '', r.cantidad || '', idx === 0 ? firmaTexto : '']);
+    const tipoDoc = data.tipo === 'devolucion' ? 'devolucion'
+                  : data.estado_entrega === 'usado_en_obra' ? 'uso' : 'entrega';
+
+    const tableBody = rawRows.map(r => {
+      let noEstado = '';
+      if (tipoDoc === 'devolucion') noEstado = r.estado_devolucion === 'no_devuelto' ? '⚠ NO DEVUELTO' : '';
+      else if (tipoDoc === 'uso')   noEstado = r.estado_uso === 'no_usado' ? '⚠ NO USADO' : '';
+      else                          noEstado = r.estado_recepcion === 'no_recibido' ? '⚠ NO RECIBIDO' : '';
+      return [r.fecha || '', (r.epp || '') + (noEstado ? '\n' + noEstado : ''), r.cantidad || '', ''];
+    });
     while (tableBody.length < 15) tableBody.push(['', '', '', '']);
+
     y = PDF.needPage(doc, y, 20, H, M);
     const tblStart = y;
     doc.autoTable({
@@ -142,24 +151,56 @@
       body: tableBody, startY: y, margin: { left: M, right: M }, theme: 'grid',
       styles: { lineWidth: 0.3, lineColor: [180, 180, 180], fontSize: 8, cellPadding: 2.5, minCellHeight: 8 },
       headStyles: { fillColor: [50, 50, 50], textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold', cellPadding: 3 },
-      columnStyles: { 0: { cellWidth: 25 }, 2: { cellWidth: 14, halign: 'center' }, 3: { cellWidth: 42 } }
+      columnStyles: { 0: { cellWidth: 25 }, 2: { cellWidth: 14, halign: 'center' }, 3: { cellWidth: 42 } },
+      didParseCell(hookData) {
+        if (hookData.section === 'body' && hookData.row.index < rawRows.length) {
+          const row = rawRows[hookData.row.index];
+          const isNeg = tipoDoc === 'devolucion' ? row.estado_devolucion === 'no_devuelto'
+                      : tipoDoc === 'uso' ? row.estado_uso === 'no_usado'
+                      : row.estado_recepcion === 'no_recibido';
+          if (isNeg) { hookData.cell.styles.fillColor = [255, 235, 238]; hookData.cell.styles.textColor = [183, 28, 28]; }
+        }
+      }
     });
     y = doc.lastAutoTable.finalY;
     doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.4);
     if (y > tblStart) doc.rect(M, tblStart, CW, y - tblStart, 'S');
-    y += 6;
+    y += 4;
 
-    // Footer legal text + signature
+    // Signature block — image or text, below the table
+    const firmaImg  = tipoDoc === 'devolucion' ? data.firma_admin_devolucion_img
+                    : tipoDoc === 'uso'         ? data.firma_admin_obra_img
+                    :                             data.firma_trabajador_img;
+    const firmaName = tipoDoc === 'devolucion' ? data.firma_admin_devolucion
+                    : tipoDoc === 'uso'         ? data.firma_admin_obra
+                    :                             data.firma_trabajador;
+    const firmaLabel = tipoDoc === 'devolucion' ? 'FIRMA DE QUIEN RECIBE LA DEVOLUCIÓN'
+                     : tipoDoc === 'uso'         ? 'FIRMA DE QUIEN AUTORIZA USO EN OBRA'
+                     :                             'FIRMA DE RECIBIDO';
+
+    if (firmaImg || firmaName) {
+      const BH = firmaImg ? 36 : 18;
+      y = PDF.needPage(doc, y, BH + 4, H, M);
+      doc.setDrawColor(0); doc.setLineWidth(0.3); doc.rect(M, y, CW, BH, 'S');
+      doc.setFontSize(7); doc.setFont(undefined, 'bold'); doc.setTextColor(60, 60, 60);
+      doc.text(firmaLabel, M + 3, y + 5);
+      if (firmaImg) {
+        try { doc.addImage(firmaImg, 'PNG', M + 3, y + 7, CW - 6, BH - 11); } catch {}
+      }
+      if (firmaName) {
+        doc.setFontSize(8); doc.setFont(undefined, 'normal'); doc.setTextColor(0);
+        doc.text(firmaName, M + 3, y + BH - 3);
+      }
+      y += BH + 4;
+    }
+
+    // Footer legal text
     y = PDF.needPage(doc, y, 20, H, M);
     doc.setTextColor(30, 30, 30); doc.setFont(undefined, 'italic'); doc.setFontSize(7);
     const footerText = 'Soy consciente que no usar los elementos de protección personal recibidos puede afectar mi salud y bienestar general, así como generarme sanciones administrativas por parte de la empresa de acuerdo con lo establecido por la normatividad vigente y el reglamento interno de trabajo.';
-    const footerLines = doc.splitTextToSize(footerText, CW * 0.55);
-    doc.text(footerLines, M, y + 4);
-    doc.setFont(undefined, 'normal'); doc.setFontSize(8); doc.setTextColor(0, 0, 0);
-    doc.text('Firma', W / 2 + 20, y + 14, { align: 'center' });
-    doc.setLineWidth(0.4); doc.line(W / 2, y + 15, W - M, y + 15);
+    doc.text(doc.splitTextToSize(footerText, CW), M, y + 4);
 
-    return y + 20;
+    return y + 18;
   };
 
   // ── FR-SST-44 — Hoja de Vida Equipos y Herramientas ────────
