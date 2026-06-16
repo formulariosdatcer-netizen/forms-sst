@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#E87722">
   <title>Firmar recepción | SST DATCER</title>
+  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -12,6 +13,10 @@
     <img src="icons/logo.png" alt="DATCER" class="header-logo-img" style="height:36px;object-fit:contain">
     <span class="header-title">Confirmación de Recepción</span>
   </header>
+
+  <div class="offline-banner" id="offline-banner">
+    📵 Sin conexión — la firma se guardará cuando vuelva el internet
+  </div>
 
   <div class="container" id="app-container" style="padding:16px;max-width:640px;margin:0 auto">
 
@@ -76,7 +81,9 @@
     let _record = null;
 
     document.addEventListener('DOMContentLoaded', () => {
+      if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
       DB.init();
+      setupOnlineStatus();
       const urlPin = new URLSearchParams(window.location.search).get('pin');
       if (urlPin) {
         document.getElementById('pin-input').value = urlPin;
@@ -86,6 +93,14 @@
         if (e.key === 'Enter') buscarPorPin();
       });
     });
+
+    function setupOnlineStatus() {
+      const banner = document.getElementById('offline-banner');
+      const update = () => navigator.onLine ? banner.classList.remove('show') : banner.classList.add('show');
+      update();
+      window.addEventListener('online', update);
+      window.addEventListener('offline', update);
+    }
 
     async function buscarPorPin() {
       const pin = String(document.getElementById('pin-input').value).trim();
