@@ -76,6 +76,67 @@ function populateFormFilter() {
   });
 }
 
+// ── Card HTML builder ─────────────────────────────────────
+function _buildCardHtml(r, i) {
+  const form = window.SST_FORMS ? window.SST_FORMS[r.form_id] : null;
+  const icon  = form ? (form.icon || '📄') : '📄';
+  const code  = form ? form.code : r.form_id;
+  const name  = `${r.worker_name || ''} ${r.worker_lastname || ''}`.trim() || 'Sin nombre';
+  const date  = new Date(r.created_at).toLocaleDateString('es-CO', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+  const badge = r.synced
+    ? `<span class="sync-badge synced">✅ Sync</span>`
+    : `<span class="sync-badge pending">⏳ Pendiente</span>`;
+
+  const esPedido = r.form_id === 'fr-sst-43';
+  const estado43 = esPedido ? ((r.form_data && r.form_data.estado_entrega) || 'pendiente_firma') : null;
+  const esDevo   = esPedido && r.form_data && r.form_data.tipo === 'devolucion';
+  const esUso    = esPedido && r.form_data && r.form_data.tipo === 'usado_en_obra';
+  const esVinc   = esDevo || esUso;
+  const pin43    = esPedido && !esVinc ? ((r.form_data && r.form_data.firma_pin) || '') : null;
+
+  const estadoBadge43 = esPedido ? `<div style="margin-top:6px;font-size:11px;display:flex;flex-wrap:wrap;gap:4px;align-items:center">
+    ${esDevo ? '<span style="background:#e3f2fd;color:#0d47a1;padding:2px 8px;border-radius:10px;font-weight:600">🔄 Registro de devolución</span>' : ''}
+    ${esUso  ? '<span style="background:#fce4ec;color:#880e4f;padding:2px 8px;border-radius:10px;font-weight:600">🏗 Registro de uso en obra</span>' : ''}
+    ${!esVinc && estado43 === 'pendiente_firma' ? '<span style="background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:10px;font-weight:600">⏳ Pendiente firma</span>' : ''}
+    ${!esVinc && estado43 === 'firmado'         ? '<span style="background:#e8f5e9;color:#1b5e20;padding:2px 8px;border-radius:10px;font-weight:600">✅ Entregado</span>' : ''}
+    ${!esVinc && estado43 === 'devolucion'      ? '<span style="background:#e8f5e9;color:#1b5e20;padding:2px 8px;border-radius:10px;font-weight:600">✅ Entregado</span><span style="color:#bbb;font-size:13px">→</span><span style="background:#e3f2fd;color:#0d47a1;padding:2px 8px;border-radius:10px;font-weight:600">🔄 Devuelto</span>' : ''}
+    ${!esVinc && estado43 === 'usado_en_obra'   ? '<span style="background:#e8f5e9;color:#1b5e20;padding:2px 8px;border-radius:10px;font-weight:600">✅ Entregado</span><span style="color:#bbb;font-size:13px">→</span><span style="background:#fce4ec;color:#880e4f;padding:2px 8px;border-radius:10px;font-weight:600">🏗 Usado en obra</span>' : ''}
+    ${pin43 && estado43 === 'pendiente_firma' ? `<span style="color:#888">PIN: <strong style="font-size:15px;color:#E87722;letter-spacing:2px">${pin43}</strong></span>` : ''}
+  </div>` : '';
+
+  const acciones43 = esPedido && !esVinc && estado43 === 'firmado' ? `
+    <button class="submission-btn" style="color:#1565c0" onclick="registrarDevolucion(${i})">🔄 Devolución</button>
+    <button class="submission-btn" style="color:#6a1b9a" onclick="marcarUsadoObra(${i})">🏗 Usado en obra</button>` : '';
+
+  const cardStyle = esDevo ? 'style="border-left:4px solid #1565c0;background:linear-gradient(to right,#f0f7ff 0%,#fff 60%)"'
+                  : esUso  ? 'style="border-left:4px solid #880e4f;background:linear-gradient(to right,#fdf0f5 0%,#fff 60%)"'
+                  : '';
+  const codeExtra = esDevo ? ' · <span style="color:#1565c0;font-size:11px">Devolución</span>'
+                  : esUso  ? ' · <span style="color:#880e4f;font-size:11px">Usado en obra</span>'
+                  : '';
+
+  return `
+      <div class="submission-card" ${cardStyle}>
+        <div class="submission-header">
+          <div class="submission-icon">${icon}</div>
+          <div class="submission-info">
+            <div class="submission-form-code">${code}${codeExtra}</div>
+            <div class="submission-worker">${name}</div>
+            <div class="submission-meta">${date}</div>
+            ${estadoBadge43}
+          </div>
+          ${badge}
+        </div>
+        <div class="submission-actions">
+          <button class="submission-btn" onclick="openDetail(${i})">👁 Ver detalle</button>
+          <button class="submission-btn" onclick="previewPDF(${i})">🔍 Vista previa</button>
+          <button class="submission-btn pdf-btn" onclick="downloadPDF(${i})">⬇️ PDF</button>
+          ${acciones43}
+          <button class="submission-btn" style="color:#c62828" onclick="deleteRecord(${i})">🗑 Eliminar</button>
+        </div>
+      </div>`;
+}
+
 // ── Render list ───────────────────────────────────────────
 function renderList() {
   const formFilter   = document.getElementById('filter-form').value;
@@ -91,6 +152,8 @@ function renderList() {
     return name.includes(workerFilter);
   });
 
+  window._filteredRecords = records;
+
   const container = document.getElementById('submissions-list');
 
   if (!records.length) {
@@ -101,78 +164,52 @@ function renderList() {
     return;
   }
 
-  container.innerHTML = records.map((r, i) => {
-    const form = window.SST_FORMS ? window.SST_FORMS[r.form_id] : null;
-    const icon  = form ? (form.icon || '📄') : '📄';
-    const code  = form ? form.code : r.form_id;
-    const name  = `${r.worker_name || ''} ${r.worker_lastname || ''}`.trim() || 'Sin nombre';
-    const date  = new Date(r.created_at).toLocaleDateString('es-CO', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
-    const badge = r.synced
-      ? `<span class="sync-badge synced">✅ Sync</span>`
-      : `<span class="sync-badge pending">⏳ Pendiente</span>`;
+  // Build parent→children index map for FR-SST-43 linked records
+  const childrenOf = {};
+  const childIdSet = new Set();
+  records.forEach((r, i) => {
+    const oid = r.form_data && r.form_data.original_id;
+    if (oid) {
+      childIdSet.add(r.id);
+      if (!childrenOf[oid]) childrenOf[oid] = [];
+      childrenOf[oid].push(i);
+    }
+  });
 
-    // FR-SST-43 special display
-    const esPedido = r.form_id === 'fr-sst-43';
-    const estado43 = esPedido ? ((r.form_data && r.form_data.estado_entrega) || 'pendiente_firma') : null;
-    const esDevo   = esPedido && r.form_data && r.form_data.tipo === 'devolucion';
-    const esUso    = esPedido && r.form_data && r.form_data.tipo === 'usado_en_obra';
-    const esVinc   = esDevo || esUso;
-    const pin43    = esPedido && !esVinc ? ((r.form_data && r.form_data.firma_pin) || '') : null;
+  let html = '';
+  records.forEach((r, i) => {
+    if (childIdSet.has(r.id)) return; // rendered inside parent group
 
-    const estadoBadge43 = esPedido ? `<div style="margin-top:6px;font-size:11px;display:flex;flex-wrap:wrap;gap:4px;align-items:center">
-      ${esDevo ? '<span style="background:#e3f2fd;color:#0d47a1;padding:2px 8px;border-radius:10px;font-weight:600">🔄 Registro de devolución</span>' : ''}
-      ${esUso  ? '<span style="background:#fce4ec;color:#880e4f;padding:2px 8px;border-radius:10px;font-weight:600">🏗 Registro de uso en obra</span>' : ''}
-      ${!esVinc && estado43 === 'pendiente_firma' ? '<span style="background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:10px;font-weight:600">⏳ Pendiente firma</span>' : ''}
-      ${!esVinc && estado43 === 'firmado'         ? '<span style="background:#e8f5e9;color:#1b5e20;padding:2px 8px;border-radius:10px;font-weight:600">✅ Entregado</span>' : ''}
-      ${!esVinc && estado43 === 'devolucion'      ? '<span style="background:#e8f5e9;color:#1b5e20;padding:2px 8px;border-radius:10px;font-weight:600">✅ Entregado</span><span style="color:#bbb;font-size:13px">→</span><span style="background:#e3f2fd;color:#0d47a1;padding:2px 8px;border-radius:10px;font-weight:600">🔄 Devuelto</span>' : ''}
-      ${!esVinc && estado43 === 'usado_en_obra'   ? '<span style="background:#e8f5e9;color:#1b5e20;padding:2px 8px;border-radius:10px;font-weight:600">✅ Entregado</span><span style="color:#bbb;font-size:13px">→</span><span style="background:#fce4ec;color:#880e4f;padding:2px 8px;border-radius:10px;font-weight:600">🏗 Usado en obra</span>' : ''}
-      ${pin43 && estado43 === 'pendiente_firma' ? `<span style="color:#888">PIN: <strong style="font-size:15px;color:#E87722;letter-spacing:2px">${pin43}</strong></span>` : ''}
-    </div>` : '';
+    const cardHtml = _buildCardHtml(r, i);
+    const kids = childrenOf[r.id];
 
-    const acciones43 = esPedido && !esVinc && estado43 === 'firmado' ? `
-      <button class="submission-btn" style="color:#1565c0" onclick="registrarDevolucion(${i})">🔄 Devolución</button>
-      <button class="submission-btn" style="color:#6a1b9a" onclick="marcarUsadoObra(${i})">🏗 Usado en obra</button>` : '';
+    if (kids && kids.length) {
+      const firstChild = records[kids[0]];
+      const childTipo  = firstChild.form_data && firstChild.form_data.tipo;
+      const grpColor   = childTipo === 'devolucion' ? '#1565c0' : '#880e4f';
+      const grpBg      = childTipo === 'devolucion' ? '#ddeeff' : '#fce4ec';
+      const grpLabel   = childTipo === 'devolucion'
+        ? '🗂 Proceso EPP — Entrega + Devolución'
+        : '🗂 Proceso EPP — Entrega + Uso en obra';
 
-    const vincLink = esDevo ? `
-      <div style="font-size:11px;color:#1565c0;margin-top:3px;display:flex;align-items:center;gap:4px">
-        <span style="font-size:14px;line-height:1">↳</span> Vinculada al registro de entrega original
-      </div>` : esUso ? `
-      <div style="font-size:11px;color:#880e4f;margin-top:3px;display:flex;align-items:center;gap:4px">
-        <span style="font-size:14px;line-height:1">↳</span> Vinculada al registro de entrega original
-      </div>` : '';
-
-    const cardStyle = esDevo ? 'style="border-left:4px solid #1565c0;background:linear-gradient(to right,#f0f7ff 0%,#fff 60%)"'
-                    : esUso  ? 'style="border-left:4px solid #880e4f;background:linear-gradient(to right,#fdf0f5 0%,#fff 60%)"'
-                    : '';
-    const codeExtra = esDevo ? ' · <span style="color:#1565c0;font-size:11px">Devolución</span>'
-                    : esUso  ? ' · <span style="color:#880e4f;font-size:11px">Usado en obra</span>'
-                    : '';
-
-    return `
-      <div class="submission-card" ${cardStyle}>
-        <div class="submission-header">
-          <div class="submission-icon">${icon}</div>
-          <div class="submission-info">
-            <div class="submission-form-code">${code}${codeExtra}</div>
-            <div class="submission-worker">${name}</div>
-            <div class="submission-meta">${date}</div>
-            ${estadoBadge43}
-            ${vincLink}
-          </div>
-          ${badge}
+      html += `<div style="border:2px solid ${grpColor};border-radius:14px;overflow:hidden;margin-bottom:16px">
+        <div style="padding:6px 16px;font-size:11px;font-weight:700;color:${grpColor};background:${grpBg};letter-spacing:.4px;display:flex;align-items:center;gap:8px">
+          <span>${grpLabel}</span>
+          <span style="opacity:.5">·</span>
+          <span style="font-weight:400;opacity:.8">${kids.length + 1} registros vinculados</span>
         </div>
-        <div class="submission-actions">
-          <button class="submission-btn" onclick="openDetail(${i})">👁 Ver detalle</button>
-          <button class="submission-btn" onclick="previewPDF(${i})">🔍 Vista previa</button>
-          <button class="submission-btn pdf-btn" onclick="downloadPDF(${i})">⬇️ PDF</button>
-          ${acciones43}
-          <button class="submission-btn" style="color:#c62828" onclick="deleteRecord(${i})">🗑 Eliminar</button>
-        </div>
-      </div>`;
-  }).join('');
+        ${cardHtml}`;
+      kids.forEach(ki => {
+        html += `<div style="height:1px;background:#e0e0e0;margin:0 0"></div>`;
+        html += _buildCardHtml(records[ki], ki);
+      });
+      html += `</div>`;
+    } else {
+      html += cardHtml;
+    }
+  });
 
-  // store filtered records for index reference
-  window._filteredRecords = records;
+  container.innerHTML = html;
 }
 
 // ── Detail modal ──────────────────────────────────────────
