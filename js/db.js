@@ -124,5 +124,48 @@ const DB = {
         synced: true
       }));
     } catch (e) { return []; }
+  },
+
+  async deleteRecord(id) {
+    const queue = this.getQueue().filter(r => r.id !== id);
+    this.saveQueue(queue);
+    if (this.supabase) {
+      try { await this.supabase.from('submissions').delete().eq('id', id); } catch {}
+    }
+  },
+
+  async updateFormData(id, newFormData) {
+    if (this.supabase) {
+      try {
+        await this.supabase.from('submissions').update({ form_data: newFormData }).eq('id', id);
+      } catch {}
+    }
+    const queue = this.getQueue().map(r => r.id === id ? { ...r, form_data: newFormData } : r);
+    this.saveQueue(queue);
+  },
+
+  async fetchByPin(pin) {
+    if (!this.supabase) return null;
+    try {
+      const { data } = await this.supabase
+        .from('submissions')
+        .select('*')
+        .eq('form_id', 'fr-sst-43')
+        .filter('form_data->>firma_pin', 'eq', String(pin))
+        .maybeSingle();
+      if (!data) return null;
+      return {
+        id: data.id,
+        form_id: data.form_id,
+        worker_name: data.worker_name,
+        worker_lastname: data.worker_lastname,
+        worker_doc: data.worker_doc,
+        worker_role: data.worker_role,
+        worker_company: data.worker_company,
+        form_data: data.form_data,
+        created_at: data.created_at,
+        synced: true
+      };
+    } catch { return null; }
   }
 };

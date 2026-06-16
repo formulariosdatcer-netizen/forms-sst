@@ -111,6 +111,22 @@ function renderList() {
       ? `<span class="sync-badge synced">✅ Sync</span>`
       : `<span class="sync-badge pending">⏳ Pendiente</span>`;
 
+    // FR-SST-43 special display
+    const esPedido = r.form_id === 'fr-sst-43';
+    const estado43 = esPedido ? ((r.form_data && r.form_data.estado_entrega) || 'pendiente_firma') : null;
+    const pin43    = esPedido ? ((r.form_data && r.form_data.firma_pin) || '') : null;
+    const estadoBadge43 = esPedido ? `<div style="margin-top:6px;font-size:11px;display:flex;flex-wrap:wrap;gap:4px;align-items:center">
+      ${estado43 === 'pendiente_firma' ? '<span style="background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:10px;font-weight:600">⏳ Pendiente firma</span>' : ''}
+      ${estado43 === 'firmado'         ? '<span style="background:#e8f5e9;color:#1b5e20;padding:2px 8px;border-radius:10px;font-weight:600">✅ Firmado</span>' : ''}
+      ${estado43 === 'devolucion'      ? '<span style="background:#e3f2fd;color:#0d47a1;padding:2px 8px;border-radius:10px;font-weight:600">🔄 Devuelto</span>' : ''}
+      ${estado43 === 'usado_en_obra'   ? '<span style="background:#fce4ec;color:#880e4f;padding:2px 8px;border-radius:10px;font-weight:600">🏗 Usado en obra</span>' : ''}
+      ${pin43 && estado43 === 'pendiente_firma' ? `<span style="color:#888">PIN: <strong style="font-size:15px;color:#E87722;letter-spacing:2px">${pin43}</strong></span>` : ''}
+    </div>` : '';
+
+    const acciones43 = esPedido && estado43 === 'firmado' ? `
+      <button class="submission-btn" style="color:#1565c0" onclick="registrarDevolucion(${i})">🔄 Devolución</button>
+      <button class="submission-btn" style="color:#6a1b9a" onclick="marcarUsadoObra(${i})">🏗 Usado en obra</button>` : '';
+
     return `
       <div class="submission-card">
         <div class="submission-header">
@@ -119,6 +135,7 @@ function renderList() {
             <div class="submission-form-code">${code}</div>
             <div class="submission-worker">${name}</div>
             <div class="submission-meta">${date}</div>
+            ${estadoBadge43}
           </div>
           ${badge}
         </div>
@@ -126,6 +143,8 @@ function renderList() {
           <button class="submission-btn" onclick="openDetail(${i})">👁 Ver detalle</button>
           <button class="submission-btn" onclick="previewPDF(${i})">🔍 Vista previa</button>
           <button class="submission-btn pdf-btn" onclick="downloadPDF(${i})">⬇️ PDF</button>
+          ${acciones43}
+          <button class="submission-btn" style="color:#c62828" onclick="deleteRecord(${i})">🗑 Eliminar</button>
         </div>
       </div>`;
   }).join('');
@@ -333,4 +352,67 @@ function showToast(msg) {
 
 function esc(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Delete record ─────────────────────────────────────────
+async function deleteRecord(index) {
+  const record = window._filteredRecords[index];
+  if (!record) return;
+  const nombre = `${record.worker_name || ''} ${record.worker_lastname || ''}`.trim() || 'este registro';
+  if (!confirm(`¿Eliminar el registro de ${nombre}? Esta acción no se puede deshacer.`)) return;
+  await DB.deleteRecord(record.id);
+  _cloudRecords = _cloudRecords.filter(r => r.id !== record.id);
+  renderList();
+  updateStats();
+  showToast('Registro eliminado');
+}
+
+// ── FR-SST-43 workflow ────────────────────────────────────
+async function registrarDevolucion(index) {
+  const record = window._filteredRecords[index];
+  if (!record) return;
+  const adminNombre = prompt('Tu nombre completo (quien recibe la devolución):');
+  if (!adminNombre || !adminNombre.trim()) return;
+  // Duplicate record as devolución
+  const devData = Object.assign({}, record.form_data, {
+    tipo: 'devolucion',
+    original_id: record.id,
+    estado_entrega: 'devolucion',
+    firma_pin: undefined,
+    firma_admin_devolucion: adminNombre.trim(),
+    fecha_devolucion: new Date().toISOString()
+  });
+  delete devData.firma_pin;
+  await DB.save('fr-sst-43', {
+    nombres: record.worker_name || '',
+    apellidos: record.worker_lastname || '',
+    cedula: record.worker_doc || '',
+    cargo: record.worker_role || '',
+    empresa: record.worker_company || ''
+  }, devData);
+  // Mark original as devuelto
+  const updatedData = Object.assign({}, record.form_data, { estado_entrega: 'devolucion' });
+  await DB.updateFormData(record.id, updatedData);
+  const idx = _cloudRecords.findIndex(r => r.id === record.id);
+  if (idx !== -1) _cloudRecords[idx] = Object.assign({}, _cloudRecords[idx], { form_data: updatedData });
+  _cloudRecords = [];
+  await loadFromCloud();
+  showToast('✅ Devolución registrada');
+}
+
+async function marcarUsadoObra(index) {
+  const record = window._filteredRecords[index];
+  if (!record) return;
+  const adminNombre = prompt('Tu nombre completo (quien autoriza el uso en obra):');
+  if (!adminNombre || !adminNombre.trim()) return;
+  const updatedData = Object.assign({}, record.form_data, {
+    estado_entrega: 'usado_en_obra',
+    firma_admin_obra: adminNombre.trim(),
+    fecha_obra: new Date().toISOString()
+  });
+  await DB.updateFormData(record.id, updatedData);
+  const idx = _cloudRecords.findIndex(r => r.id === record.id);
+  if (idx !== -1) _cloudRecords[idx] = Object.assign({}, _cloudRecords[idx], { form_data: updatedData });
+  renderList();
+  showToast('✅ Marcado como usado en obra');
 }

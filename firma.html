@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#E87722">
+  <title>Firmar recepción | SST DATCER</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header class="app-header">
+    <img src="icons/logo.png" alt="DATCER" class="header-logo-img" style="height:36px;object-fit:contain">
+    <span class="header-title">Confirmación de Recepción</span>
+  </header>
+
+  <div class="container" id="app-container" style="padding:16px;max-width:640px;margin:0 auto">
+
+    <!-- PIN entry -->
+    <div id="pin-screen">
+      <div class="form-section" style="margin-top:16px">
+        <div class="section-header">Ingresar PIN de entrega</div>
+        <div class="section-body">
+          <p style="color:#555;margin-bottom:16px;font-size:14px">
+            El responsable de SST te entregó un PIN de 6 dígitos. Ingrésalo aquí para confirmar que recibiste los elementos.
+          </p>
+          <div class="field-group">
+            <label class="field-label">PIN de 6 dígitos</label>
+            <input type="number" id="pin-input" class="field-input"
+                   placeholder="000000" inputmode="numeric" maxlength="6"
+                   style="font-size:28px;letter-spacing:6px;text-align:center;font-weight:700">
+          </div>
+          <button class="btn btn-primary" id="pin-btn" onclick="buscarPorPin()" style="margin-top:12px;width:100%">
+            Buscar →
+          </button>
+          <div id="pin-error" style="color:#c62828;margin-top:10px;font-size:14px;display:none;text-align:center"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Entrega info + signature -->
+    <div id="firma-screen" style="display:none">
+      <div id="entrega-info"></div>
+      <div class="form-section">
+        <div class="section-header">Confirmar recepción con tu nombre</div>
+        <div class="section-body">
+          <div class="field-group">
+            <label class="field-label">Nombre completo (firma de recibido) <span class="req">*</span></label>
+            <input type="text" id="firma-nombre" class="field-input"
+                   placeholder="Escribe tu nombre completo" autocomplete="name">
+          </div>
+          <button class="btn btn-primary" id="firma-btn" onclick="confirmarFirma()" style="margin-top:12px;width:100%">
+            ✅ Confirmar que recibí los elementos
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success -->
+    <div id="success-screen" style="display:none">
+      <div class="success-screen">
+        <div class="success-icon">✅</div>
+        <div class="success-title">¡Recepción confirmada!</div>
+        <div class="success-subtitle">Has confirmado la recepción de los elementos de protección personal. El responsable de SST puede ver esta confirmación en el panel administrativo.</div>
+        <a href="index.html" class="btn btn-primary" style="margin-top:20px">Ir al inicio</a>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="js/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/db.js"></script>
+  <script>
+    let _record = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      DB.init();
+      const urlPin = new URLSearchParams(window.location.search).get('pin');
+      if (urlPin) {
+        document.getElementById('pin-input').value = urlPin;
+        buscarPorPin();
+      }
+      document.getElementById('pin-input').addEventListener('keydown', e => {
+        if (e.key === 'Enter') buscarPorPin();
+      });
+    });
+
+    async function buscarPorPin() {
+      const pin = String(document.getElementById('pin-input').value).trim();
+      const errEl = document.getElementById('pin-error');
+      errEl.style.display = 'none';
+      if (!pin || pin.length < 4) { mostrarError('Ingresa el PIN completo (6 dígitos)'); return; }
+      const btn = document.getElementById('pin-btn');
+      btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Buscando...';
+      _record = await DB.fetchByPin(pin);
+      btn.disabled = false; btn.textContent = 'Buscar →';
+      if (!_record) { mostrarError('PIN no encontrado. Verifica el número con el responsable de SST.'); return; }
+      const estado = _record.form_data && _record.form_data.estado_entrega;
+      if (estado && estado !== 'pendiente_firma') {
+        mostrarError('Este formulario ya fue procesado anteriormente (estado: ' + estado + ').');
+        return;
+      }
+      mostrarEntrega();
+    }
+
+    function mostrarEntrega() {
+      const d = _record.form_data || {};
+      const nombre = ((_record.worker_name || '') + ' ' + (_record.worker_lastname || '')).trim() || '—';
+      const entregas = Array.isArray(d.entregas) ? d.entregas : [];
+      const rows = entregas.map(e =>
+        `<tr><td>${e.fecha || '—'}</td><td>${e.epp || '—'}</td><td style="text-align:center">${e.cantidad || '—'}</td><td>${e.observaciones || ''}</td></tr>`
+      ).join('') || '<tr><td colspan="4" style="text-align:center;color:#888">Sin elementos registrados</td></tr>';
+
+      document.getElementById('entrega-info').innerHTML = `
+        <div class="form-section">
+          <div class="section-header">Elementos que recibes</div>
+          <div class="section-body">
+            <div class="worker-box" style="margin-bottom:12px">
+              <div><div class="worker-field-label">Trabajador</div><div class="worker-field-value">${esc(nombre)}</div></div>
+              <div><div class="worker-field-label">Cédula</div><div class="worker-field-value">${esc(_record.worker_doc || '—')}</div></div>
+              <div><div class="worker-field-label">Cargo</div><div class="worker-field-value">${esc(_record.worker_role || '—')}</div></div>
+            </div>
+            <div style="overflow-x:auto">
+              <table class="detail-table">
+                <thead><tr><th>Fecha</th><th>EPP / Dotación</th><th>Cant</th><th>Observaciones</th></tr></thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>`;
+      document.getElementById('pin-screen').style.display = 'none';
+      document.getElementById('firma-screen').style.display = 'block';
+      window.scrollTo(0, 0);
+    }
+
+    async function confirmarFirma() {
+      const nombre = document.getElementById('firma-nombre').value.trim();
+      if (!nombre) { showToast('Ingresa tu nombre completo para firmar'); return; }
+      const btn = document.getElementById('firma-btn');
+      btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Guardando...';
+      const newData = Object.assign({}, _record.form_data, {
+        firma_trabajador: nombre,
+        estado_entrega: 'firmado',
+        fecha_firma: new Date().toISOString()
+      });
+      await DB.updateFormData(_record.id, newData);
+      document.getElementById('firma-screen').style.display = 'none';
+      document.getElementById('success-screen').style.display = 'block';
+      window.scrollTo(0, 0);
+    }
+
+    function esc(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    let _toastTimer;
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg; el.classList.add('show');
+      clearTimeout(_toastTimer);
+      _toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+    }
+    function mostrarError(msg) {
+      const el = document.getElementById('pin-error');
+      el.textContent = msg; el.style.display = 'block';
+    }
+  </script>
+</body>
+</html>

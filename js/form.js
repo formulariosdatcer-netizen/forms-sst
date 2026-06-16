@@ -403,8 +403,15 @@ async function submitForm() {
   btn.innerHTML = '<span class="spinner"></span> Guardando...';
 
   try {
-    const result = await DB.save(_config.id, window._worker, collectFormData());
-    showSuccess(result.synced);
+    const formData = collectFormData();
+    let pin = null;
+    if (_config.id === 'fr-sst-43') {
+      pin = String(Math.floor(100000 + Math.random() * 900000));
+      formData.firma_pin = pin;
+      formData.estado_entrega = 'pendiente_firma';
+    }
+    const result = await DB.save(_config.id, window._worker, formData);
+    showSuccess(result.synced, pin);
   } catch (e) {
     btn.disabled = false;
     btn.textContent = 'Enviar Formulario';
@@ -412,14 +419,21 @@ async function submitForm() {
   }
 }
 
-function showSuccess(synced) {
+function showSuccess(synced, pin) {
   document.getElementById('action-bar').style.display = 'none';
   document.getElementById('step-indicator').style.display = 'none';
+  const pinBlock = pin ? `
+    <div style="background:#fff3e0;border:2px solid #E87722;border-radius:12px;padding:16px;margin:16px 0;text-align:center">
+      <div style="font-size:13px;color:#555;margin-bottom:8px;font-weight:600">📋 PIN para que el trabajador firme la recepción</div>
+      <div style="font-size:38px;font-weight:900;letter-spacing:8px;color:#E87722">${pin}</div>
+      <div style="font-size:11px;color:#888;margin-top:8px">Comparte este PIN con el trabajador para que firme en: <strong>${window.location.origin}/firma.html</strong></div>
+    </div>` : '';
   document.getElementById('form-container').innerHTML = `
     <div class="success-screen">
       <div class="success-icon">✅</div>
       <div class="success-title">¡Enviado!</div>
       <div class="success-subtitle">El formulario <strong>${_config.code}</strong> fue guardado correctamente.</div>
+      ${pinBlock}
       ${!synced ? `<div class="success-offline-note">
         📶 Sin conexión — los datos están guardados en tu dispositivo y se sincronizarán automáticamente cuando vuelva el internet.
       </div>` : ''}

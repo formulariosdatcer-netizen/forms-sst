@@ -24,19 +24,17 @@ const PDF = {
 
   async loadLogo() {
     if (this._logo) return this._logo;
-    return new Promise(resolve => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        const c = document.createElement('canvas');
-        c.width = img.width; c.height = img.height;
-        c.getContext('2d').drawImage(img, 0, 0);
-        this._logo = c.toDataURL('image/png');
-        resolve(this._logo);
-      };
-      img.onerror = () => resolve(null);
-      img.src = 'icons/logo.png?' + Date.now();
-    });
+    try {
+      const resp = await fetch('icons/logo.png');
+      if (!resp.ok) return null;
+      const blob = await resp.blob();
+      return await new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => { this._logo = reader.result; resolve(this._logo); };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch { return null; }
   },
 
   formatDate(iso) {
