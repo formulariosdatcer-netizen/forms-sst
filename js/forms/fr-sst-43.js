@@ -28,6 +28,18 @@ window.SST_FORMS['fr-sst-43'] = {
           ]
         }
       ]
+    },
+    {
+      title: 'Anotaciones adicionales (no aparece en PDF)',
+      fields: [
+        {
+          id: 'anotaciones_admin',
+          label: 'Notas del responsable SST',
+          type: 'textarea',
+          rows: 3,
+          placeholder: 'Observaciones internas, aclaraciones sobre la entrega...'
+        }
+      ]
     }
   ]
 };

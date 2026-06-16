@@ -207,6 +207,34 @@ function renderDetailHTML(record, form) {
     html += `</div></div>`;
   });
 
+  // FR-SST-43: show worker notes from firma.html (not in form definition)
+  if (record.form_id === 'fr-sst-43' && d.anotaciones_trabajador) {
+    html += `<div class="detail-section">
+      <div class="detail-section-title">📝 Anotaciones del trabajador (al firmar)</div>
+      <div class="detail-section-body">
+        <div class="detail-field">
+          <div class="detail-label">Notas del trabajador</div>
+          <div class="detail-value">${esc(d.anotaciones_trabajador)}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // FR-SST-43: show firma status
+  if (record.form_id === 'fr-sst-43' && d.firma_trabajador) {
+    html += `<div class="detail-section">
+      <div class="detail-section-title">✍️ Firma de recepción</div>
+      <div class="detail-section-body">
+        <div class="detail-field">
+          <div class="detail-label">Firmado por</div>
+          <div class="detail-value">${esc(d.firma_trabajador)}</div>
+        </div>
+        ${d.fecha_firma ? `<div class="detail-field"><div class="detail-label">Fecha de firma</div><div class="detail-value">${new Date(d.fecha_firma).toLocaleString('es-CO')}</div></div>` : ''}
+        ${d.firma_trabajador_img ? `<div class="detail-field"><div class="detail-label">Imagen de firma</div><img src="${d.firma_trabajador_img}" style="max-width:100%;max-height:120px;border:1px solid #eee;border-radius:6px;margin-top:4px;display:block"></div>` : ''}
+      </div>
+    </div>`;
+  }
+
   return html;
 }
 
