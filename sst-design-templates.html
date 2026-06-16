@@ -1,0 +1,2350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Formularios SST · DATCER</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<!--
+╔══════════════════════════════════════════════════════════════════════╗
+║  DATCER · SST DESIGN SYSTEM v1.0                                     ║
+║  Diseños canónicos de formularios SST para impresión y PDF           ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  INSTRUCCIONES PARA EL CLAUDE DE FORMS SST:                          ║
+║                                                                      ║
+║  • Este archivo es la VISTA FINAL de impresión/PDF de cada formulario║
+║  • Cada pestaña = un formulario → data-form="fr-sst-XX"             ║
+║  • Para abrir un form desde la app: showForm('fr-sst-XX')            ║
+║  • Para pre-cargar datos: loadFormData('fr-sst-XX', dataObject)      ║
+║  • Los datos se guardan en localStorage → clave: datcer:fr-sst-XX   ║
+║                                                                      ║
+║  ESTRUCTURA DE DATOS por formulario:                                 ║
+║  { meta: { campo: valor, ... }, cells: { key: valor, ... } }         ║
+║                                                                      ║
+║  CLAVE DE CELDAS (cells):                                            ║
+║  "[PREFIJO]_[numItem]_[aspecto]_[dia]" → valor: ""|"B"|"M"|"N"     ║
+║  "[PREFIJO]_[numItem]_obs"             → valor: texto libre          ║
+║  "[PREFIJO]_[numItem]_sino"            → valor: "SI"|"NO"|"NA"|""   ║
+╚══════════════════════════════════════════════════════════════════════╝
+-->
+
+<style>
+/* ══════════════════════════════════════
+   VARIABLES GLOBALES
+══════════════════════════════════════ */
+:root{
+  --acc:#F16621; --acc-dark:#D9560F; --acc-soft:rgba(241,102,33,.10);
+  --bg:#F5F5F7; --panel:#FFFFFF; --panel2:#F7F7F9; --line:#E5E5EA; --hair:#D8D8DD;
+  --txt:#1D1D1F; --txt2:#6E6E73; --txt3:#A1A1A6;
+  --ok:#18A05E; --ok-bg:#EDFAF3; --ok-line:rgba(24,160,94,.28);
+  --err:#C0392B; --err-bg:#FDEDEC; --err-line:rgba(192,57,43,.28);
+  --na-bg:#F0F0F5; --na-txt:#6E6E73; --na-line:#C9C9CF;
+  --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,'Helvetica Neue',sans-serif;
+  font-size:13px;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+button{font-family:inherit;cursor:pointer}
+a{color:inherit;text-decoration:none}
+
+/* ══ TOPBAR ══ */
+#topbar{
+  position:sticky;top:0;z-index:60;height:52px;display:flex;align-items:center;
+  gap:12px;padding:0 20px;
+  background:rgba(245,245,247,.90);backdrop-filter:saturate(180%) blur(20px);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:.5px solid var(--hair);
+}
+.wordmark{font-family:'Archivo',sans-serif;font-weight:800;font-size:16px;letter-spacing:.10em;user-select:none;flex-shrink:0}
+.wordmark b{color:var(--acc)}
+.topbar-sep{width:1px;height:18px;background:var(--hair);flex-shrink:0}
+.topbar-label{font-size:12px;font-weight:600;color:var(--txt2);flex-shrink:0}
+#topbar .spacer{flex:1}
+#savestate{font-size:11px;color:var(--txt3);font-weight:500;min-width:90px;text-align:right;flex-shrink:0}
+#savestate.ok{color:var(--ok)}
+.tb-btn{
+  display:inline-flex;align-items:center;gap:6px;height:31px;padding:0 13px;
+  border-radius:980px;border:none;background:#E9E9EE;color:var(--txt);
+  font-size:12px;font-weight:500;transition:.15s;flex-shrink:0;
+}
+.tb-btn:hover{background:#E0E0E6}
+.tb-btn:active{transform:scale(.97)}
+.tb-btn.primary{background:var(--acc);color:#fff;font-weight:600;box-shadow:0 1px 6px rgba(241,102,33,.30)}
+.tb-btn.primary:hover{background:var(--acc-dark)}
+.tb-btn svg{width:13px;height:13px;flex-shrink:0}
+
+/* ══ TAB BAR ══ */
+#tabbar{
+  position:sticky;top:52px;z-index:55;
+  display:flex;gap:0;overflow-x:auto;
+  background:rgba(255,255,255,.95);backdrop-filter:blur(12px);
+  border-bottom:1.5px solid var(--line);padding:0 20px;
+  scrollbar-width:none;
+}
+#tabbar::-webkit-scrollbar{display:none}
+.tab-btn{
+  display:inline-flex;align-items:center;gap:7px;height:42px;padding:0 16px;
+  border:none;background:none;color:var(--txt3);font-size:12.5px;font-weight:500;
+  white-space:nowrap;border-bottom:2px solid transparent;transition:.15s;flex-shrink:0;
+}
+.tab-btn:hover{color:var(--txt2)}
+.tab-btn.active{color:var(--acc);font-weight:600;border-bottom-color:var(--acc)}
+.tab-btn .tab-code{
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;
+  background:var(--acc-soft);color:var(--acc-dark);
+  border-radius:5px;padding:1px 6px;
+}
+.tab-btn.active .tab-code{background:var(--acc);color:#fff}
+
+/* ══ PANEL CONTENEDOR ══ */
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+.tab-content{padding:18px 20px 60px;min-width:0}
+
+/* ══ ENCABEZADO DEL DOCUMENTO ══ */
+.doc-header{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  overflow:hidden;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.05);
+}
+.doc-header-top{display:flex;align-items:stretch;border-bottom:.5px solid var(--line)}
+.dh-logo{
+  padding:11px 16px;display:flex;flex-direction:column;justify-content:center;
+  border-right:.5px solid var(--line);flex-shrink:0;
+}
+.dh-logo-img{height:36px;display:block;object-fit:contain;max-width:160px}
+.dh-tagline{font-size:9px;color:var(--txt3);letter-spacing:.05em;margin-top:4px;font-weight:500}
+.dh-title{
+  flex:1;padding:11px 16px;display:flex;flex-direction:column;justify-content:center;
+  border-right:.5px solid var(--line);
+}
+.dh-form-title{
+  font-family:'Archivo',sans-serif;font-weight:700;font-size:12.5pt;
+  color:var(--txt);text-transform:uppercase;letter-spacing:.02em;line-height:1.2;
+}
+.dh-form-sub{font-size:10.5px;color:var(--txt3);margin-top:3px;font-weight:500}
+.dh-code{
+  padding:10px 14px;display:flex;flex-direction:column;justify-content:center;
+  align-items:flex-end;gap:4px;flex-shrink:0;min-width:150px;
+}
+.dh-badge{
+  font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;
+  background:var(--acc);color:#fff;border-radius:6px;
+  padding:3px 9px;letter-spacing:.05em;
+}
+.dh-meta{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--txt3);font-weight:500}
+
+/* ══ CAMPOS ID ══ */
+.id-row{display:flex;border-top:.5px solid var(--line)}
+.id-cell{
+  flex:1;padding:6px 12px;border-right:.5px solid var(--line);
+  display:flex;flex-direction:column;gap:2px;min-width:0;
+}
+.id-cell:last-child{border-right:none}
+.id-cell.w2{flex:2}
+.id-cell.w3{flex:3}
+.id-label{font-size:9.5px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.05em}
+.id-input{
+  font-size:12.5px;color:var(--txt);background:transparent;border:none;outline:none;
+  padding:0;font-family:inherit;width:100%;
+}
+.id-input:focus{color:var(--acc)}
+
+/* ══ INSTRUCCIONES BANNER ══ */
+.instruc{
+  display:flex;align-items:flex-start;gap:10px;
+  background:var(--acc-soft);border:1px solid rgba(241,102,33,.22);border-radius:8px;
+  padding:9px 12px;margin-bottom:12px;
+}
+.instruc-tag{
+  font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;
+  background:var(--acc);color:#fff;border-radius:5px;padding:2px 7px;flex-shrink:0;
+}
+.instruc p{font-size:11.5px;color:var(--acc-dark);font-weight:500;line-height:1.5}
+.legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:5px}
+.leg{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;color:var(--txt2)}
+.chip{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;
+  border-radius:4px;padding:1px 7px;border:1px solid}
+.chip.b{background:var(--ok-bg);color:var(--ok);border-color:var(--ok-line)}
+.chip.m{background:var(--err-bg);color:var(--err);border-color:var(--err-line)}
+.chip.n{background:var(--na-bg);color:var(--na-txt);border-color:var(--na-line)}
+.chip.si{background:var(--ok-bg);color:var(--ok);border-color:var(--ok-line)}
+.chip.no{background:var(--err-bg);color:var(--err);border-color:var(--err-line)}
+.chip.na{background:var(--na-bg);color:var(--na-txt);border-color:var(--na-line)}
+
+/* ══ TABLA DE INSPECCIÓN ══ */
+.tbl-wrap{overflow-x:auto;border-radius:var(--radius);margin-bottom:12px;
+  box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.insp-tbl{
+  border-collapse:collapse;background:var(--panel);
+  border:1px solid var(--line);min-width:100%;
+  font-size:10.5px;
+}
+/* head */
+.insp-tbl thead th{
+  font-family:'Archivo',sans-serif;font-size:9px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;vertical-align:middle;
+  padding:6px 5px;text-align:center;white-space:nowrap;
+  border-right:.5px solid rgba(255,255,255,.15);
+  background:#1D1D1F;color:#EBEBF5;
+}
+.insp-tbl thead th.acc{background:var(--acc);color:#fff}
+/* section row */
+.sec-row td{
+  background:var(--acc);color:#fff;font-family:'Archivo',sans-serif;
+  font-weight:700;font-size:10px;letter-spacing:.07em;text-transform:uppercase;
+  padding:5px 10px;text-align:center;
+}
+/* body cells */
+.insp-tbl td{
+  padding:0;vertical-align:middle;
+  border-right:.5px solid var(--line);border-bottom:.5px solid var(--line);
+  background:var(--panel);
+}
+.insp-tbl tr:last-child td{border-bottom:none}
+.insp-tbl td:last-child{border-right:none}
+
+td.tc-num{
+  text-align:center;font-family:'JetBrains Mono',monospace;font-weight:700;
+  font-size:10px;color:var(--acc);padding:4px 3px;min-width:26px;
+  background:var(--panel2);
+}
+td.tc-tipo{
+  font-family:'Archivo',sans-serif;font-weight:700;font-size:10.5px;
+  color:var(--txt);padding:4px 8px;min-width:100px;max-width:120px;
+  white-space:normal;line-height:1.25;text-align:center;
+  background:var(--panel2);
+}
+td.tc-asp{
+  font-size:10.5px;color:var(--txt2);padding:4px 8px;
+  min-width:200px;max-width:260px;white-space:normal;line-height:1.35;
+}
+td.tc-day{
+  width:21px;min-width:21px;max-width:21px;
+  text-align:center;padding:0;cursor:pointer;user-select:none;
+}
+td.tc-day .dc{
+  width:21px;height:26px;display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;transition:.10s;
+}
+td.tc-day .dc[data-v=""]{color:transparent}
+td.tc-day .dc[data-v="B"]{background:var(--ok-bg);color:var(--ok)}
+td.tc-day .dc[data-v="M"]{background:var(--err-bg);color:var(--err)}
+td.tc-day .dc[data-v="N"]{background:var(--na-bg);color:var(--na-txt)}
+td.tc-day:hover .dc[data-v=""]{background:#F0F0F5}
+
+/* SI/NO/NA toggle (para FR-37) */
+td.tc-sino{min-width:88px;padding:3px 5px;vertical-align:middle}
+.sino-toggle{display:flex;gap:3px}
+.sino-btn{
+  flex:1;height:22px;border:1px solid var(--line);border-radius:4px;
+  font-size:9.5px;font-weight:700;background:#fff;transition:.12s;
+  font-family:'JetBrains Mono',monospace;
+}
+.sino-btn:hover{background:var(--panel2)}
+.sino-btn[data-active="SI"]{background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok)}
+.sino-btn[data-active="NO"]{background:var(--err-bg);border-color:var(--err-line);color:var(--err)}
+.sino-btn[data-active="NA"]{background:var(--na-bg);border-color:var(--na-line);color:var(--na-txt)}
+
+td.tc-obs{min-width:110px;padding:3px 6px;vertical-align:middle}
+td.tc-obs input{
+  width:100%;border:none;outline:none;background:transparent;
+  font-size:10px;color:var(--txt);font-family:inherit;padding:1px;
+}
+td.tc-obs input:focus{background:rgba(241,102,33,.06);border-radius:3px}
+
+/* zebra */
+.insp-tbl tbody tr:nth-child(even) td.tc-asp,
+.insp-tbl tbody tr:nth-child(even) td.tc-obs{background:var(--panel2)}
+.sec-row ~ tr:nth-child(even) td.tc-asp,
+.sec-row ~ tr:nth-child(even) td.tc-obs{background:var(--panel2)}
+
+/* ══ PIE ══ */
+.footer-row{display:flex;gap:12px;margin-bottom:12px}
+.firma-box,.obs-box{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.04);
+}
+.firma-box{flex:1}
+.obs-box{flex:2}
+.box-label{font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.firma-line{margin-top:32px;border-top:1px solid var(--hair);padding-top:5px;font-size:10px;color:var(--txt3);text-align:center}
+.obs-box textarea{
+  width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+  padding:8px 10px;font-size:12.5px;font-family:inherit;color:var(--txt);
+  resize:vertical;min-height:70px;outline:none;transition:.15s;
+}
+.obs-box textarea:focus{border-color:var(--acc);background:#fff;box-shadow:0 0 0 3px rgba(241,102,33,.13)}
+.notas-box{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:12px 14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.04);
+}
+.notas-box .box-label{margin-bottom:7px}
+.notas-box ul{list-style:none;display:flex;flex-direction:column;gap:4px}
+.notas-box ul li{font-size:11.5px;color:var(--txt2);padding-left:13px;position:relative;line-height:1.4}
+.notas-box ul li::before{content:'›';position:absolute;left:0;color:var(--acc);font-weight:700}
+.nota-legal{
+  font-size:10.5px;color:var(--txt3);line-height:1.55;padding:9px 12px;
+  background:var(--panel2);border:1px solid var(--line);border-radius:7px;margin-bottom:12px;
+}
+
+/* ══ TOAST ══ */
+#toast{
+  position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(14px);z-index:99;
+  background:rgba(28,28,30,.92);color:#fff;padding:9px 18px;border-radius:980px;
+  font-size:12px;font-weight:500;opacity:0;pointer-events:none;
+  transition:.25s cubic-bezier(.3,.9,.4,1);backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);box-shadow:0 6px 24px rgba(0,0,0,.25);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ══ DATE INLINE (FR-38 headers) ══ */
+.date-inline{
+  font-size:10px;background:transparent;border:none;border-bottom:1px solid var(--hair);
+  color:var(--txt);font-family:'JetBrains Mono',monospace;cursor:pointer;
+  padding:1px 2px;outline:none;width:106px;
+}
+.date-inline:focus{border-bottom-color:var(--acc);color:var(--acc)}
+
+/* ══ SEÑALIZACIÓN TABLE ══ */
+td.tc-tipo-sig{
+  font-size:11px;color:var(--txt);padding:3px 7px;min-width:190px;
+  background:var(--panel);
+}
+td.tc-tipo-sig input{
+  width:100%;border:none;outline:none;background:transparent;
+  font-size:11px;color:var(--txt);font-family:inherit;
+}
+td.tc-tipo-sig input::placeholder{color:var(--txt3)}
+td.tc-cant{width:44px;min-width:44px;padding:3px 4px;text-align:center}
+td.tc-cant input{
+  width:100%;border:none;outline:none;background:transparent;
+  font-size:11px;text-align:center;color:var(--txt);font-family:'JetBrains Mono',monospace;
+}
+td.tc-bm{width:34px;min-width:34px;text-align:center;cursor:pointer;padding:0}
+td.tc-bm .bm{
+  width:34px;height:30px;display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;transition:.10s;
+  color:transparent;
+}
+td.tc-bm .bm.on-b{background:var(--ok-bg);color:var(--ok)}
+td.tc-bm .bm.on-m{background:var(--err-bg);color:var(--err)}
+td.tc-bm:hover .bm:not(.on-b):not(.on-m){background:#F0F0F5}
+
+/* ══ TOGGLE CALIFICACIÓN / CONTROL (FR-40) ══ */
+td.tc-cal, td.tc-ctrl{
+  width:30px;min-width:30px;text-align:center;cursor:pointer;padding:0;
+}
+td.tc-cal .cv, td.tc-ctrl .cv{
+  width:30px;height:26px;display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;
+  color:transparent;transition:.10s;
+}
+td.tc-cal:hover .cv, td.tc-ctrl:hover .cv{background:#F0F0F5;color:var(--txt3)}
+.cv.on-na{background:var(--na-bg)!important;color:var(--na-txt)!important}
+.cv.on-b{background:var(--ok-bg)!important;color:var(--ok)!important}
+.cv.on-m{background:var(--err-bg)!important;color:var(--err)!important}
+.cv.on-a{background:#FFF3E0!important;color:#E65100!important}
+td.tc-cant-s{width:54px;min-width:54px;text-align:center;padding:2px 4px}
+td.tc-cant-s input{
+  width:100%;border:none;outline:none;background:transparent;
+  font-size:11px;text-align:center;color:var(--txt);font-family:'JetBrains Mono',monospace;
+}
+td.tc-venc{min-width:90px;padding:2px 5px}
+td.tc-venc input{
+  width:100%;border:none;outline:none;background:transparent;
+  font-size:10px;color:var(--txt);font-family:inherit;cursor:pointer;
+}
+
+/* ══ SCORE BAR (FR-42) ══ */
+.score-bar{
+  display:flex;align-items:center;gap:10px;padding:7px 12px;
+  background:var(--panel);border:1px solid var(--line);border-radius:0 0 8px 8px;
+  font-size:11px;margin-bottom:4px;
+}
+.score-pct{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;min-width:52px}
+.score-pct.ok{color:var(--ok)} .score-pct.warn{color:#E65100} .score-pct.bad{color:var(--err)} .score-pct.none{color:var(--txt3)}
+.score-label{font-weight:600;color:var(--txt2)}
+.score-bar-track{flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.score-bar-fill{height:100%;border-radius:3px;transition:.3s}
+.score-bar-fill.ok{background:var(--ok)} .score-bar-fill.warn{background:#E65100} .score-bar-fill.bad{background:var(--err)}
+
+/* SINO toggle for FR-42 */
+td.tc-sino42{width:40px;min-width:40px;text-align:center;cursor:pointer;padding:2px}
+td.tc-sino42 .sv{
+  width:36px;height:24px;display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;
+  border-radius:4px;transition:.10s;color:var(--txt3);border:1px solid transparent;margin:auto;
+}
+td.tc-sino42:hover .sv{background:var(--panel2)}
+.sv.on-si{background:var(--ok-bg)!important;color:var(--ok)!important;border-color:var(--ok-line)!important}
+.sv.on-no{background:var(--err-bg)!important;color:var(--err)!important;border-color:var(--err-line)!important}
+.sv.on-na{background:var(--na-bg)!important;color:var(--na-txt)!important;border-color:var(--na-line)!important}
+
+/* ══ PRINT ══ */
+@media print{
+  @page{size:A4 landscape;margin:6mm 7mm}
+  #topbar,#tabbar,#toast,.tb-btn{display:none!important}
+  .tab-panel{display:block!important}
+  .tab-panel:not(.active){display:none!important}
+  body{background:#fff;font-size:9px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .tab-content{padding:0}
+  .tbl-wrap{overflow:visible;box-shadow:none;border-radius:0}
+  .doc-header{border-radius:0;box-shadow:none;margin-bottom:5px}
+  .instruc{margin-bottom:5px;padding:5px 9px}
+  .insp-tbl{font-size:8.5px}
+  td.tc-asp{min-width:150px;max-width:180px;font-size:8px}
+  td.tc-tipo{min-width:80px;max-width:100px;font-size:9px}
+  td.tc-day{width:17px;min-width:17px}
+  td.tc-day .dc{width:17px;height:19px;font-size:8px}
+  .obs-box textarea{min-height:40px}
+  .firma-line{margin-top:18px}
+  .nota-legal{font-size:9px}
+  input,textarea,select{border:none!important;outline:none!important;background:transparent!important}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <a href="../Datcer informes/dashboard.html" class="tb-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    Dashboard
+  </a>
+  <span class="topbar-sep"></span>
+  <span class="wordmark">DAT<b>CER</b></span>
+  <span class="topbar-label">Documentos SST</span>
+  <div class="spacer"></div>
+  <span id="savestate">—</span>
+  <button class="tb-btn" id="btn-save">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+    Guardar
+  </button>
+  <button class="tb-btn" id="btn-clear">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6l-1 14H6L5 6"/><path d="M8 6V4h8v2"/></svg>
+    Nuevo
+  </button>
+  <button class="tb-btn primary" onclick="window.print()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/></svg>
+    Imprimir / PDF
+  </button>
+</div>
+
+<!-- TAB BAR -->
+<div id="tabbar">
+  <button class="tab-btn active" data-tab="fr-sst-36">
+    <span class="tab-code">FR-SST-36</span>
+    Inspección de Herramienta
+  </button>
+  <button class="tab-btn" data-tab="fr-sst-37">
+    <span class="tab-code">FR-SST-37</span>
+    Preuso de Escaleras
+  </button>
+  <button class="tab-btn" data-tab="fr-sst-38">
+    <span class="tab-code">FR-SST-38</span>
+    Inspección de Señalización
+  </button>
+  <button class="tab-btn" data-tab="fr-sst-39">
+    <span class="tab-code">FR-SST-39</span>
+    Preuso Andamio Colgante
+  </button>
+  <button class="tab-btn" data-tab="fr-sst-40">
+    <span class="tab-code">FR-SST-40</span>
+    Inventario Botiquín
+  </button>
+  <button class="tab-btn" data-tab="fr-sst-41">
+    <span class="tab-code">FR-SST-41</span>
+    Inspección Extintores
+  </button>
+  <button class="tab-btn" data-tab="fr-sst-42">
+    <span class="tab-code">FR-SST-42</span>
+    SST Contratistas
+  </button>
+  <button class="tab-btn" data-tab="fr-sst-43">
+    <span class="tab-code">FR-SST-43</span>
+    Entrega de EPP
+  </button>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     PESTAÑA FR-SST-36 · INSPECCIÓN DE HERRAMIENTA
+════════════════════════════════════════════════════════ -->
+<div class="tab-panel active" id="tab-fr-sst-36" data-form="fr-sst-36">
+<div class="tab-content">
+
+  <div class="doc-header">
+    <div class="doc-header-top">
+      <div class="dh-logo">
+        <img src="Assets/Logo Datcer 08022019 (1).png" alt="DATCER" class="dh-logo-img">
+        <div class="dh-tagline">SST · Seguridad y Salud en el Trabajo</div>
+      </div>
+      <div class="dh-title">
+        <div class="dh-form-title">Inspección para Herramientas Menores y Eléctricas</div>
+        <div class="dh-form-sub">Sistema de Gestión de Seguridad y Salud en el Trabajo</div>
+      </div>
+      <div class="dh-code">
+        <span class="dh-badge">FR-SST-36</span>
+        <span class="dh-meta">Versión 01 · 18/02/2020</span>
+      </div>
+    </div>
+    <div class="id-row">
+      <div class="id-cell w3"><div class="id-label">Nombre del Colaborador</div><input class="id-input" id="36-nombre" type="text" placeholder="Nombre completo"></div>
+      <div class="id-cell"><div class="id-label">Cargo</div><input class="id-input" id="36-cargo" type="text" placeholder="Cargo"></div>
+      <div class="id-cell w2"><div class="id-label">Inspector de SST</div><input class="id-input" id="36-inspector" type="text" placeholder="Nombre del inspector"></div>
+      <div class="id-cell"><div class="id-label">Cédula</div><input class="id-input" id="36-cedula" type="text" placeholder="N° cédula"></div>
+    </div>
+    <div class="id-row">
+      <div class="id-cell w3"><div class="id-label">Proyecto / Área</div><input class="id-input" id="36-proyecto" type="text" placeholder="Nombre del proyecto o área"></div>
+      <div class="id-cell"><div class="id-label">Mes de Inspección</div><input class="id-input" id="36-mes" type="month"></div>
+    </div>
+  </div>
+
+  <div class="instruc">
+    <span class="instruc-tag">MARQUE</span>
+    <div>
+      <p>Haga clic en la celda del día para asignar el estado de cada parte de la herramienta.</p>
+      <div class="legend">
+        <span class="leg"><span class="chip b">B</span> Buen Estado</span>
+        <span class="leg"><span class="chip m">M</span> Mal Estado → retirar del servicio</span>
+        <span class="leg"><span class="chip n">N/A</span> No aplica este tipo de herramienta</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla Herramientas Menores -->
+  <div class="tbl-wrap">
+    <table class="insp-tbl" id="tbl-36-menores">
+      <thead>
+        <tr>
+          <th rowspan="2" style="min-width:26px">N°</th>
+          <th rowspan="2" class="acc" style="min-width:100px">TIPO DE<br>HERRAMIENTA</th>
+          <th rowspan="2" class="acc" style="min-width:200px;text-align:left;padding-left:9px">ASPECTOS A INSPECCIONAR</th>
+          <th colspan="31" class="acc">DÍAS DEL MES</th>
+          <th rowspan="2" style="min-width:108px">OBSERVACIONES</th>
+        </tr>
+        <tr id="36-days-m"></tr>
+      </thead>
+      <tbody id="36-tbody-m"></tbody>
+    </table>
+  </div>
+
+  <!-- Tabla Herramientas Eléctricas -->
+  <div class="tbl-wrap">
+    <table class="insp-tbl" id="tbl-36-elec">
+      <thead>
+        <tr>
+          <th rowspan="2" style="min-width:26px">N°</th>
+          <th rowspan="2" class="acc" style="min-width:100px">TIPO DE<br>HERRAMIENTA</th>
+          <th rowspan="2" class="acc" style="min-width:200px;text-align:left;padding-left:9px">ASPECTOS A INSPECCIONAR</th>
+          <th colspan="31" class="acc">DÍAS DEL MES</th>
+          <th rowspan="2" style="min-width:108px">OBSERVACIONES</th>
+        </tr>
+        <tr id="36-days-e"></tr>
+      </thead>
+      <tbody id="36-tbody-e"></tbody>
+    </table>
+  </div>
+
+  <div class="footer-row">
+    <div class="firma-box">
+      <div class="box-label">Firma del Trabajador</div>
+      <p style="font-size:11px;color:var(--txt3)">Constancia de la inspección de las herramientas</p>
+      <div class="firma-line">Firma · Nombre legible</div>
+    </div>
+    <div class="obs-box">
+      <div class="box-label">Observaciones Generales</div>
+      <textarea id="36-obsgen" placeholder="Observaciones generales del mes..."></textarea>
+    </div>
+  </div>
+
+  <div class="notas-box">
+    <div class="box-label">Recuerde</div>
+    <ul>
+      <li>Mantener su herramienta en buen estado.</li>
+      <li>Inspeccionar completamente su herramienta a diario.</li>
+      <li>Informar cualquier daño al inspector SST.</li>
+      <li>Leer el instructivo para validar las condiciones de la herramienta.</li>
+      <li>Mantener su herramienta ordenada y guardada en una caja.</li>
+    </ul>
+  </div>
+  <div class="nota-legal">
+    En caso de encontrar alguna falla, reportar inmediatamente al Responsable de SST en el formato <strong>FR-SST-31</strong>
+    Reporte de actos y condiciones inseguras (Tarjetón de Seguridad). Semanalmente será revisado por el responsable de SST;
+    al final de cada mes entregar este formato diligenciado al Responsable de SST.
+  </div>
+
+</div><!-- /tab-content -->
+</div><!-- /tab-fr-sst-36 -->
+
+
+<!-- ════════════════════════════════════════════════════════
+     PESTAÑA FR-SST-37 · INSPECCIÓN PREUSO DE ESCALERAS
+════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-fr-sst-37" data-form="fr-sst-37">
+<div class="tab-content">
+
+  <div class="doc-header">
+    <div class="doc-header-top">
+      <div class="dh-logo">
+        <img src="Assets/Logo Datcer 08022019 (1).png" alt="DATCER" class="dh-logo-img">
+        <div class="dh-tagline">SST · Seguridad y Salud en el Trabajo</div>
+      </div>
+      <div class="dh-title">
+        <div class="dh-form-title">Inspección Preuso de Escaleras</div>
+        <div class="dh-form-sub">Sistema de Gestión de Seguridad y Salud en el Trabajo</div>
+      </div>
+      <div class="dh-code">
+        <span class="dh-badge">FR-SST-37</span>
+        <span class="dh-meta">Versión 01 · 18/02/2020</span>
+      </div>
+    </div>
+    <div class="id-row">
+      <div class="id-cell w2"><div class="id-label">Mes de Inspección</div><input class="id-input" id="37-mes" type="month"></div>
+      <div class="id-cell w3"><div class="id-label">Responsable de la Inspección</div><input class="id-input" id="37-responsable" type="text" placeholder="Nombre completo"></div>
+      <div class="id-cell"><div class="id-label">Cargo</div><input class="id-input" id="37-cargo" type="text" placeholder="Cargo"></div>
+      <div class="id-cell"><div class="id-label">Cédula</div><input class="id-input" id="37-cedula" type="text" placeholder="N° cédula"></div>
+    </div>
+    <div class="id-row">
+      <div class="id-cell w2"><div class="id-label">Cliente</div><input class="id-input" id="37-cliente" type="text" placeholder="Nombre del cliente"></div>
+      <div class="id-cell w2"><div class="id-label">Contratista</div><input class="id-input" id="37-contratista" type="text" placeholder="Nombre del contratista"></div>
+    </div>
+    <div class="id-row">
+      <div class="id-cell w2">
+        <div class="id-label">Tipo de Escalera</div>
+        <select class="id-input" id="37-tipo" style="font-size:12px">
+          <option value="">Seleccionar tipo...</option>
+          <option>TIJERA</option><option>SIMPLE</option>
+          <option>EXTENSIÓN</option><option>MULTIDIRECCIONAL</option>
+        </select>
+      </div>
+      <div class="id-cell"><div class="id-label">Clasificación</div><input class="id-input" id="37-clasificacion" type="text" placeholder="Clasificación"></div>
+      <div class="id-cell w2"><div class="id-label">Certificación</div><input class="id-input" id="37-certificacion" type="text" placeholder="N° de certificación"></div>
+    </div>
+  </div>
+
+  <div class="instruc">
+    <span class="instruc-tag">MARQUE</span>
+    <div>
+      <p>Para cada ítem indique SI / NO / N/A en la columna de evaluación y marque el día en que realizó la inspección preuso.</p>
+      <div class="legend">
+        <span class="leg"><span class="chip si">SI</span> Cumple</span>
+        <span class="leg"><span class="chip no">NO</span> No cumple → corregir antes de usar</span>
+        <span class="leg"><span class="chip na">N/A</span> No aplica</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla escaleras -->
+  <div class="tbl-wrap">
+    <table class="insp-tbl" id="tbl-37">
+      <thead>
+        <tr>
+          <th rowspan="2" style="min-width:26px">ÍTEM</th>
+          <th rowspan="2" class="acc" style="min-width:230px;text-align:left;padding-left:9px">ASPECTOS A VERIFICAR</th>
+          <th colspan="3" class="acc" style="min-width:90px">EVALUACIÓN</th>
+          <th rowspan="2" style="min-width:108px">OBS / RECOMENDACIÓN</th>
+          <th colspan="31" class="acc">DÍAS DEL MES</th>
+        </tr>
+        <tr id="37-days-row">
+          <th class="acc" style="min-width:28px;font-size:9px">SI</th>
+          <th class="acc" style="min-width:28px;font-size:9px">NO</th>
+          <th class="acc" style="min-width:28px;font-size:9px">N/A</th>
+        </tr>
+      </thead>
+      <tbody id="37-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="footer-row">
+    <div class="firma-box">
+      <div class="box-label">Firma del Trabajador</div>
+      <p style="font-size:11px;color:var(--txt3)">Constancia de la inspección de escaleras</p>
+      <div class="firma-line">Firma · Nombre legible</div>
+    </div>
+    <div class="obs-box">
+      <div class="box-label">Observaciones / Recomendaciones Generales</div>
+      <textarea id="37-obsgen" placeholder="Observaciones generales del mes..."></textarea>
+    </div>
+  </div>
+
+  <div class="nota-legal">
+    Inspección obligatoria antes de cada uso de la escalera. En caso de encontrar una falla, retirar la escalera de servicio
+    inmediatamente y reportar al Responsable de SST. No usar escaleras improvisadas o en mal estado.
+  </div>
+
+</div>
+</div><!-- /tab-fr-sst-37 -->
+
+
+<!-- ════════════════════════════════════════════════════════
+     PESTAÑA FR-SST-38 · INSPECCIÓN DE SEÑALIZACIÓN
+════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-fr-sst-38" data-form="fr-sst-38">
+<div class="tab-content">
+
+  <div class="doc-header">
+    <div class="doc-header-top">
+      <div class="dh-logo">
+        <img src="Assets/Logo Datcer 08022019 (1).png" alt="DATCER" class="dh-logo-img">
+        <div class="dh-tagline">SST · Seguridad y Salud en el Trabajo</div>
+      </div>
+      <div class="dh-title">
+        <div class="dh-form-title">Inspección de Señalización</div>
+        <div class="dh-form-sub">Sistema de Gestión de Seguridad y Salud en el Trabajo</div>
+      </div>
+      <div class="dh-code">
+        <span class="dh-badge">FR-SST-38</span>
+        <span class="dh-meta">Versión 01 · 18/02/2020</span>
+      </div>
+    </div>
+    <div class="id-row">
+      <div class="id-cell w3"><div class="id-label">Nombre y Cargo del Responsable de la Inspección</div><input class="id-input" id="38-responsable" type="text" placeholder="Nombre completo y cargo"></div>
+    </div>
+  </div>
+
+  <div class="instruc">
+    <span class="instruc-tag">REGISTRE</span>
+    <div>
+      <p>Para cada tipo de señalización, registre la cantidad disponible y su estado. Puede realizar hasta <strong>4 inspecciones</strong> con fechas distintas.</p>
+      <div class="legend">
+        <span class="leg"><span class="chip b">B</span> Bueno</span>
+        <span class="leg"><span class="chip m">M</span> Malo → reponer o reparar</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table class="insp-tbl" id="tbl-38">
+      <thead>
+        <tr>
+          <th rowspan="3" style="min-width:200px;text-align:left;padding-left:9px" class="acc">TIPO DE SEÑALIZACIÓN</th>
+          <th colspan="3" style="min-width:130px">
+            INSPECCIÓN 1 &nbsp;
+            <input type="date" id="38-f1" class="date-inline">
+          </th>
+          <th colspan="3" style="min-width:130px">
+            INSPECCIÓN 2 &nbsp;
+            <input type="date" id="38-f2" class="date-inline">
+          </th>
+          <th colspan="3" style="min-width:130px">
+            INSPECCIÓN 3 &nbsp;
+            <input type="date" id="38-f3" class="date-inline">
+          </th>
+          <th colspan="3" style="min-width:130px">
+            INSPECCIÓN 4 &nbsp;
+            <input type="date" id="38-f4" class="date-inline">
+          </th>
+        </tr>
+        <tr>
+          <th rowspan="2" class="acc" style="width:44px;font-size:9px">CANT.</th>
+          <th colspan="2" class="acc" style="font-size:9px">ESTADO</th>
+          <th rowspan="2" class="acc" style="width:44px;font-size:9px">CANT.</th>
+          <th colspan="2" class="acc" style="font-size:9px">ESTADO</th>
+          <th rowspan="2" class="acc" style="width:44px;font-size:9px">CANT.</th>
+          <th colspan="2" class="acc" style="font-size:9px">ESTADO</th>
+          <th rowspan="2" class="acc" style="width:44px;font-size:9px">CANT.</th>
+          <th colspan="2" class="acc" style="font-size:9px">ESTADO</th>
+        </tr>
+        <tr>
+          <th class="acc" style="width:34px;font-size:9px">B</th><th class="acc" style="width:34px;font-size:9px">M</th>
+          <th class="acc" style="width:34px;font-size:9px">B</th><th class="acc" style="width:34px;font-size:9px">M</th>
+          <th class="acc" style="width:34px;font-size:9px">B</th><th class="acc" style="width:34px;font-size:9px">M</th>
+          <th class="acc" style="width:34px;font-size:9px">B</th><th class="acc" style="width:34px;font-size:9px">M</th>
+        </tr>
+      </thead>
+      <tbody id="38-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="footer-row">
+    <div class="obs-box" style="flex:3">
+      <div class="box-label">Recomendaciones Generales</div>
+      <textarea id="38-recomendaciones" placeholder="Recomendaciones generales sobre el estado de la señalización..." style="min-height:80px"></textarea>
+    </div>
+    <div class="firma-box" style="flex:1">
+      <div class="box-label">Firma del Responsable</div>
+      <p style="font-size:11px;color:var(--txt3)">Inspector de la señalización</p>
+      <div class="firma-line">Firma · Nombre legible</div>
+    </div>
+  </div>
+
+  <div class="nota-legal">
+    Al detectar señalización en mal estado, reponer o reparar de inmediato. Reportar al Responsable de SST.
+    Entregar este formato diligenciado al Responsable de SST al final de cada periodo de inspección.
+  </div>
+
+</div>
+</div><!-- /tab-fr-sst-38 -->
+
+
+<!-- ════════════════════════════════════════════════════════
+     PESTAÑA FR-SST-39 · INSPECCIÓN PREUSO ANDAMIO COLGANTE
+════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-fr-sst-39" data-form="fr-sst-39">
+<div class="tab-content">
+
+  <div class="doc-header">
+    <div class="doc-header-top">
+      <div class="dh-logo">
+        <img src="Assets/Logo Datcer 08022019 (1).png" alt="DATCER" class="dh-logo-img">
+        <div class="dh-tagline">SST · Seguridad y Salud en el Trabajo</div>
+      </div>
+      <div class="dh-title">
+        <div class="dh-form-title">Inspección Preuso de Andamio Colgante</div>
+        <div class="dh-form-sub">Sistema de Gestión de Seguridad y Salud en el Trabajo</div>
+      </div>
+      <div class="dh-code">
+        <span class="dh-badge">FR-SST-39</span>
+        <span class="dh-meta">Versión 01 · 18/02/2020</span>
+      </div>
+    </div>
+    <div class="id-row">
+      <div class="id-cell w3"><div class="id-label">Nombre del Trabajador</div><input class="id-input" id="39-nombre" type="text" placeholder="Nombre completo"></div>
+      <div class="id-cell"><div class="id-label">Cargo</div><input class="id-input" id="39-cargo" type="text" placeholder="Cargo"></div>
+      <div class="id-cell"><div class="id-label">Cédula</div><input class="id-input" id="39-cedula" type="text" placeholder="N° cédula"></div>
+    </div>
+    <div class="id-row">
+      <div class="id-cell w3"><div class="id-label">Nombre del Responsable de SST</div><input class="id-input" id="39-responsable" type="text" placeholder="Nombre y cargo del responsable"></div>
+      <div class="id-cell"><div class="id-label">Cédula SST</div><input class="id-input" id="39-ced-sst" type="text" placeholder="N° cédula"></div>
+    </div>
+    <div class="id-row">
+      <div class="id-cell w3"><div class="id-label">Proyecto</div><input class="id-input" id="39-proyecto" type="text" placeholder="Nombre del proyecto"></div>
+      <div class="id-cell"><div class="id-label">Mes de Inspección</div><input class="id-input" id="39-mes" type="month"></div>
+    </div>
+  </div>
+
+  <div class="instruc">
+    <span class="instruc-tag">MARQUE</span>
+    <div>
+      <p>Para cada condición de seguridad, registre diariamente el estado del andamio antes de su uso.</p>
+      <div class="legend">
+        <span class="leg"><span class="chip si">S</span> Sí cumple</span>
+        <span class="leg"><span class="chip no">N</span> No cumple → suspender uso</span>
+        <span class="leg"><span class="chip na">NA</span> No aplica</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table class="insp-tbl" id="tbl-39">
+      <thead>
+        <tr>
+          <th rowspan="2" style="min-width:26px">N°</th>
+          <th rowspan="2" class="acc" style="min-width:260px;text-align:left;padding-left:9px">CONDICIONES DE SEGURIDAD</th>
+          <th colspan="31" class="acc">DÍAS DEL MES</th>
+          <th rowspan="2" style="min-width:110px">OBSERVACIONES</th>
+        </tr>
+        <tr id="39-days-row"></tr>
+      </thead>
+      <tbody id="39-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="footer-row">
+    <div class="firma-box" style="flex:2">
+      <div class="box-label">Firma Diaria del Trabajador</div>
+      <p style="font-size:11px;color:var(--txt3)">Constancia de la inspección del andamio colgante</p>
+      <div class="firma-line">Firma · Nombre legible</div>
+    </div>
+    <div class="obs-box" style="flex:3">
+      <div class="box-label">Observaciones Generales</div>
+      <textarea id="39-obsgen" placeholder="Observaciones generales del mes..."></textarea>
+    </div>
+  </div>
+
+  <div class="nota-legal">
+    En caso de encontrar una condición insegura, suspender inmediatamente el uso del andamio y reportar al Responsable de SST.
+    No usar el andamio hasta corregir la condición detectada.
+  </div>
+
+</div>
+</div><!-- /tab-fr-sst-39 -->
+
+
+<!-- ════════════════════════════════════════════════════════
+     PESTAÑA FR-SST-40 · INSPECCIÓN E INVENTARIO BOTIQUÍN
+════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-fr-sst-40" data-form="fr-sst-40">
+<div class="tab-content">
+
+  <div class="doc-header">
+    <div class="doc-header-top">
+      <div class="dh-logo">
+        <img src="Assets/Logo Datcer 08022019 (1).png" alt="DATCER" class="dh-logo-img">
+        <div class="dh-tagline">SST · Seguridad y Salud en el Trabajo</div>
+      </div>
+      <div class="dh-title">
+        <div class="dh-form-title">Inspección e Inventario de Elementos del Botiquín</div>
+        <div class="dh-form-sub">Sistema de Gestión de Seguridad y Salud en el Trabajo</div>
+      </div>
+      <div class="dh-code">
+        <span class="dh-badge">FR-SST-40</span>
+        <span class="dh-meta">Versión 01 · 18/02/2020</span>
+      </div>
+    </div>
+    <!-- Responsable -->
+    <div class="id-row">
+      <div class="id-cell w3"><div class="id-label">Nombre — Responsable de Inspección</div><input class="id-input" id="40-nombre1" type="text" placeholder="Nombre completo"></div>
+      <div class="id-cell"><div class="id-label">Cargo</div><input class="id-input" id="40-cargo1" type="text" placeholder="Cargo"></div>
+    </div>
+    <div class="id-row">
+      <div class="id-cell w3"><div class="id-label">Nombre — Inspector SST</div><input class="id-input" id="40-nombre2" type="text" placeholder="Nombre completo"></div>
+      <div class="id-cell"><div class="id-label">Cargo</div><input class="id-input" id="40-cargo2" type="text" placeholder="Cargo"></div>
+    </div>
+    <div class="id-row">
+      <div class="id-cell w2"><div class="id-label">Área</div><input class="id-input" id="40-area" type="text" placeholder="Área o proyecto"></div>
+      <div class="id-cell"><div class="id-label">Fecha</div><input class="id-input" id="40-fecha" type="date"></div>
+      <div class="id-cell"><div class="id-label">Hora</div><input class="id-input" id="40-hora" type="time"></div>
+    </div>
+    <div class="id-row">
+      <div class="id-cell w2"><div class="id-label">Responsable del Botiquín</div><input class="id-input" id="40-resp-bot" type="text" placeholder="Nombre"></div>
+      <div class="id-cell w2"><div class="id-label">Suplente</div><input class="id-input" id="40-suplente" type="text" placeholder="Nombre"></div>
+    </div>
+    <div class="id-row">
+      <div class="id-cell"><div class="id-label">Tipo del Botiquín</div><input class="id-input" id="40-tipo" type="text" placeholder="Tipo"></div>
+      <div class="id-cell w2"><div class="id-label">Ubicación</div><input class="id-input" id="40-ubicacion" type="text" placeholder="Ubicación exacta"></div>
+    </div>
+  </div>
+
+  <div class="instruc">
+    <span class="instruc-tag">CALIFIQUE</span>
+    <div>
+      <p>Registre las condiciones encontradas para cada elemento del botiquín.</p>
+      <div class="legend">
+        <span class="leg"><span class="chip b">B</span> Bueno</span>
+        <span class="leg"><span class="chip m">M</span> Malo</span>
+        <span class="leg"><span class="chip na">NA</span> No Aplica</span>
+        <span class="leg" style="margin-left:10px"><span class="chip" style="background:#FFF3E0;color:#E65100;border-color:#FFCC80">A</span> Control Urgente</span>
+        <span class="leg"><span class="chip b">B</span> Implementar Control</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table class="insp-tbl" id="tbl-40">
+      <thead>
+        <tr>
+          <th rowspan="2" style="min-width:26px">ÍTEM</th>
+          <th rowspan="2" class="acc" style="min-width:220px;text-align:left;padding-left:9px">ELEMENTO</th>
+          <th rowspan="2" style="min-width:54px">CANTIDAD</th>
+          <th rowspan="2" style="min-width:90px">VENCIMIENTO</th>
+          <th colspan="3" class="acc" style="min-width:90px">CALIFICACIÓN</th>
+          <th colspan="2" class="acc" style="min-width:60px">CONTROL</th>
+          <th rowspan="2" style="min-width:130px">OBS / RECOMENDACIONES</th>
+        </tr>
+        <tr>
+          <th class="acc" style="width:30px;font-size:9px">NA</th>
+          <th class="acc" style="width:30px;font-size:9px">B</th>
+          <th class="acc" style="width:30px;font-size:9px">M</th>
+          <th class="acc" style="width:30px;font-size:9px">A</th>
+          <th class="acc" style="width:30px;font-size:9px">B</th>
+        </tr>
+      </thead>
+      <tbody id="40-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="obs-box" style="margin-bottom:12px">
+    <div class="box-label">Observaciones y Recomendaciones Generales</div>
+    <textarea id="40-obsgen" placeholder="Observaciones generales sobre el estado del botiquín..." style="min-height:80px"></textarea>
+  </div>
+
+  <div class="nota-legal">
+    Entregar este formato diligenciado al Responsable de SST. En caso de encontrar elementos vencidos o en mal estado,
+    reponer inmediatamente. La inspección del botiquín debe realizarse mensualmente o después de cada uso.
+  </div>
+
+</div>
+</div><!-- /tab-fr-sst-40 -->
+
+
+<!-- ════════════════════════════════════════════════════════
+     PESTAÑA FR-SST-41 · INSPECCIÓN DE EXTINTORES
+════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-fr-sst-41" data-form="fr-sst-41">
+<div class="tab-content">
+
+  <div class="doc-header">
+    <div class="doc-header-top">
+      <div class="dh-logo">
+        <img src="Assets/Logo Datcer 08022019 (1).png" alt="DATCER" class="dh-logo-img">
+        <div class="dh-tagline">SST · Seguridad y Salud en el Trabajo</div>
+      </div>
+      <div class="dh-title">
+        <div class="dh-form-title">Inspección de Extintores</div>
+        <div class="dh-form-sub">Sistema de Gestión de Seguridad y Salud en el Trabajo</div>
+      </div>
+      <div class="dh-code">
+        <span class="dh-badge">FR-SST-41</span>
+        <span class="dh-meta">Versión 01 · 18/02/2020</span>
+      </div>
+    </div>
+    <!-- Responsables -->
+    <div class="id-row">
+      <div class="id-cell w3"><div class="id-label">Nombre — Responsable 1</div><input class="id-input" id="41-nombre1" type="text" placeholder="Nombre completo"></div>
+      <div class="id-cell"><div class="id-label">Cargo</div><input class="id-input" id="41-cargo1" type="text" placeholder="Cargo"></div>
+    </div>
+    <div class="id-row">
+      <div class="id-cell w3"><div class="id-label">Nombre — Responsable 2</div><input class="id-input" id="41-nombre2" type="text" placeholder="Nombre completo"></div>
+      <div class="id-cell"><div class="id-label">Cargo</div><input class="id-input" id="41-cargo2" type="text" placeholder="Cargo"></div>
+    </div>
+    <div class="id-row">
+      <div class="id-cell w2"><div class="id-label">Fecha</div><input class="id-input" id="41-fecha" type="date"></div>
+      <div class="id-cell"><div class="id-label">Hora</div><input class="id-input" id="41-hora" type="time"></div>
+    </div>
+    <!-- Características extintor -->
+    <div class="id-row" style="background:var(--acc-soft)">
+      <div class="id-cell w2"><div class="id-label" style="color:var(--acc-dark)">Tipo de Extintor</div><input class="id-input" id="41-tipo" type="text" placeholder="Ej: PQS, CO₂, Agua..."></div>
+      <div class="id-cell"><div class="id-label" style="color:var(--acc-dark)">Clase de Fuego</div><input class="id-input" id="41-clase" type="text" placeholder="A, B, C, D, K"></div>
+      <div class="id-cell"><div class="id-label" style="color:var(--acc-dark)">Agente Extintor</div><input class="id-input" id="41-agente" type="text" placeholder="Agente extintor"></div>
+    </div>
+    <div class="id-row" style="background:var(--acc-soft)">
+      <div class="id-cell w3"><div class="id-label" style="color:var(--acc-dark)">Ubicación</div><input class="id-input" id="41-ubicacion" type="text" placeholder="Ubicación del extintor"></div>
+      <div class="id-cell"><div class="id-label" style="color:var(--acc-dark)">N° Extintor</div><input class="id-input" id="41-numero" type="text" placeholder="Número"></div>
+      <div class="id-cell"><div class="id-label" style="color:var(--acc-dark)">Capacidad</div><input class="id-input" id="41-capacidad" type="text" placeholder="Ej: 10 lb"></div>
+    </div>
+  </div>
+
+  <div class="instruc">
+    <span class="instruc-tag">CALIFIQUE</span>
+    <div>
+      <p>Registre el estado de cada condición del extintor inspeccionado.</p>
+      <div class="legend">
+        <span class="leg"><span class="chip na">N/A</span> No Aplica</span>
+        <span class="leg"><span class="chip b">B</span> Bueno</span>
+        <span class="leg"><span class="chip m">M</span> Malo</span>
+        <span class="leg" style="margin-left:10px"><span class="chip" style="background:#FFF3E0;color:#E65100;border-color:#FFCC80">A</span> Control Urgente</span>
+        <span class="leg"><span class="chip b">B</span> Implementar Control</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table class="insp-tbl" id="tbl-41">
+      <thead>
+        <tr>
+          <th rowspan="2" style="min-width:26px">ÍTEM</th>
+          <th rowspan="2" class="acc" style="min-width:290px;text-align:left;padding-left:9px">DESCRIPCIÓN</th>
+          <th colspan="3" class="acc" style="min-width:90px">CALIFICACIÓN</th>
+          <th colspan="2" class="acc" style="min-width:60px">CONTROLES</th>
+          <th rowspan="2" style="min-width:130px">OBSERVACIONES</th>
+        </tr>
+        <tr>
+          <th class="acc" style="width:30px;font-size:9px">N/A</th>
+          <th class="acc" style="width:30px;font-size:9px">B</th>
+          <th class="acc" style="width:30px;font-size:9px">M</th>
+          <th class="acc" style="width:30px;font-size:9px">A</th>
+          <th class="acc" style="width:30px;font-size:9px">B</th>
+        </tr>
+      </thead>
+      <tbody id="41-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="obs-box" style="margin-bottom:12px">
+    <div class="box-label">Observaciones Generales</div>
+    <textarea id="41-obsgen" placeholder="Observaciones y recomendaciones generales..." style="min-height:80px"></textarea>
+  </div>
+
+  <div class="nota-legal">
+    Los extintores deben inspeccionarse mensualmente. En caso de encontrar anomalías, retirar el extintor de servicio y
+    reportar al Responsable de SST para su mantenimiento o reemplazo inmediato.
+  </div>
+
+</div>
+</div><!-- /tab-fr-sst-41 -->
+
+
+<!-- ════════════════════════════════════════════════════════
+     PESTAÑA FR-SST-42 · REQUISITOS SST CONTRATISTAS
+════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-fr-sst-42" data-form="fr-sst-42">
+<div class="tab-content">
+
+  <div class="doc-header">
+    <div class="doc-header-top">
+      <div class="dh-logo">
+        <img src="Assets/Logo Datcer 08022019 (1).png" alt="DATCER" class="dh-logo-img">
+        <div class="dh-tagline">SST · Seguridad y Salud en el Trabajo</div>
+      </div>
+      <div class="dh-title">
+        <div class="dh-form-title">Requisitos de SST para Contratistas y Proveedores</div>
+        <div class="dh-form-sub">Sistema de Gestión de Seguridad y Salud en el Trabajo · Decreto 1072/2015 · Resolución 0312/2019</div>
+      </div>
+      <div class="dh-code">
+        <span class="dh-badge">FR-SST-42</span>
+        <span class="dh-meta">Versión 01 · 18/02/2020</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Intro -->
+  <div class="nota-legal" style="margin-bottom:12px;font-size:10.5px;line-height:1.65">
+    DATCER S.A.S., comprometida con las buenas prácticas de SST, establece los requisitos y estándares básicos de seguridad
+    y salud en el trabajo que deben cumplir sus <strong>contratistas y proveedores</strong>, incluyendo subcontratistas,
+    de acuerdo al Decreto 1072 de 2015 y Resolución 0312 de 2019.
+  </div>
+
+  <!-- Datos generales -->
+  <div class="doc-header" style="margin-bottom:12px">
+    <div style="padding:7px 14px;background:var(--acc);color:#fff;font-family:'Archivo',sans-serif;font-weight:700;font-size:10px;letter-spacing:.06em;text-transform:uppercase">
+      1. Datos Generales del Contratista o Proveedor
+    </div>
+    <div class="id-row">
+      <div class="id-cell w3"><div class="id-label">Razón Social</div><input class="id-input" id="42-razon" type="text" placeholder="Nombre de la empresa"></div>
+      <div class="id-cell"><div class="id-label">NIT</div><input class="id-input" id="42-nit" type="text" placeholder="NIT"></div>
+    </div>
+    <div class="id-row">
+      <div class="id-cell w2"><div class="id-label">Dirección</div><input class="id-input" id="42-dir" type="text" placeholder="Dirección"></div>
+      <div class="id-cell"><div class="id-label">Teléfono</div><input class="id-input" id="42-tel" type="text" placeholder="Teléfono"></div>
+      <div class="id-cell"><div class="id-label">Celular</div><input class="id-input" id="42-cel" type="text" placeholder="Celular"></div>
+    </div>
+    <div class="id-row">
+      <div class="id-cell w2"><div class="id-label">Email</div><input class="id-input" id="42-email" type="email" placeholder="correo@empresa.com"></div>
+      <div class="id-cell w2"><div class="id-label">Nombre del Contacto Directo</div><input class="id-input" id="42-contacto" type="text" placeholder="Nombre del contacto"></div>
+    </div>
+    <div style="padding:5px 14px 3px;background:var(--panel2);border-top:.5px solid var(--line);font-family:'Archivo',sans-serif;font-weight:700;font-size:9.5px;color:var(--txt2);text-transform:uppercase;letter-spacing:.05em">
+      Datos del Responsable del SG-SST
+    </div>
+    <div class="id-row">
+      <div class="id-cell w3"><div class="id-label">Nombre y Cargo del Responsable SST</div><input class="id-input" id="42-resp-sst" type="text" placeholder="Nombre · Cargo"></div>
+      <div class="id-cell"><div class="id-label">Celular</div><input class="id-input" id="42-cel-sst" type="text" placeholder="Celular"></div>
+      <div class="id-cell w2"><div class="id-label">Email</div><input class="id-input" id="42-email-sst" type="email" placeholder="correo@empresa.com"></div>
+    </div>
+    <div class="id-row">
+      <div class="id-cell"><div class="id-label">Descripción de Actividades y Servicios a Prestar a DATCER S.A.S.</div>
+        <textarea class="id-input" id="42-actividades" style="min-height:48px;resize:vertical;font-size:11.5px" placeholder="Describa las actividades, cantidad de personal y servicios..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sección 2: +11 trabajadores -->
+  <div class="instruc" style="margin-bottom:8px">
+    <span class="instruc-tag">SECCIÓN 2</span>
+    <div>
+      <p><strong>Requerimientos para empresas con 11 a 50 trabajadores y más de 50 trabajadores.</strong><br>
+      Marque SI / NO / N/A según aplique. La calificación se calcula automáticamente.</p>
+    </div>
+  </div>
+  <div class="tbl-wrap" style="margin-bottom:4px">
+    <table class="insp-tbl" id="tbl-42a">
+      <thead>
+        <tr>
+          <th class="acc" style="min-width:310px;text-align:left;padding-left:9px">DESCRIPCIÓN</th>
+          <th class="acc" style="width:40px;font-size:9px">SI</th>
+          <th class="acc" style="width:40px;font-size:9px">NO</th>
+          <th class="acc" style="width:50px;font-size:9px">N/A</th>
+          <th style="min-width:140px">OBSERVACIONES</th>
+        </tr>
+      </thead>
+      <tbody id="42a-tbody"></tbody>
+    </table>
+  </div>
+  <div id="42a-score" class="score-bar"></div>
+
+  <!-- Sección 3: ≤10 trabajadores -->
+  <div class="instruc" style="margin-bottom:8px;margin-top:14px">
+    <span class="instruc-tag">SECCIÓN 3</span>
+    <div><p><strong>Requerimientos para empresas con diez (10) o menos trabajadores.</strong></p></div>
+  </div>
+  <div class="tbl-wrap" style="margin-bottom:4px">
+    <table class="insp-tbl" id="tbl-42b">
+      <thead>
+        <tr>
+          <th class="acc" style="min-width:310px;text-align:left;padding-left:9px">DESCRIPCIÓN</th>
+          <th class="acc" style="width:40px;font-size:9px">SI</th>
+          <th class="acc" style="width:40px;font-size:9px">NO</th>
+          <th class="acc" style="width:50px;font-size:9px">N/A</th>
+          <th style="min-width:140px">OBSERVACIONES</th>
+        </tr>
+      </thead>
+      <tbody id="42b-tbody"></tbody>
+    </table>
+  </div>
+  <div id="42b-score" class="score-bar"></div>
+
+  <!-- Sección 4: Compromiso -->
+  <div class="doc-header" style="margin-top:14px;margin-bottom:12px">
+    <div style="padding:7px 14px;background:var(--acc);color:#fff;font-family:'Archivo',sans-serif;font-weight:700;font-size:10px;letter-spacing:.06em;text-transform:uppercase">
+      4. Compromiso del Contratista o Proveedor
+    </div>
+    <div style="padding:10px 14px;font-size:10.5px;color:var(--txt2);line-height:1.6;border-bottom:.5px solid var(--line)">
+      Certifico que he recibido, comprendido y aceptado de DATCER S.A.S. la información correspondiente a los requisitos,
+      manual y estándares de SST para realizar cualquier tipo de trabajo en los sitios donde DATCER S.A.S. tenga presencia;
+      además garantizo y me hago responsable para que dichos requisitos se apliquen en forma oportuna, antes, durante y
+      después de cada actividad.
+    </div>
+    <div class="id-row">
+      <div class="id-cell w2"><div class="id-label">Nombre — Jefe del Área / Proceso</div><input class="id-input" id="42-firma1-nombre" type="text" placeholder="Nombre completo"></div>
+      <div class="id-cell"><div class="id-label">Cédula</div><input class="id-input" id="42-firma1-cedula" type="text" placeholder="N° cédula"></div>
+      <div class="id-cell"><div class="id-label">Cargo</div><input class="id-input" id="42-firma1-cargo" type="text" placeholder="Cargo"></div>
+    </div>
+    <div class="id-row">
+      <div class="id-cell w2"><div class="id-label">Nombre — Responsable SG-SST</div><input class="id-input" id="42-firma2-nombre" type="text" placeholder="Nombre completo"></div>
+      <div class="id-cell"><div class="id-label">Cédula</div><input class="id-input" id="42-firma2-cedula" type="text" placeholder="N° cédula"></div>
+      <div class="id-cell"><div class="id-label">Cargo</div><input class="id-input" id="42-firma2-cargo" type="text" placeholder="Cargo"></div>
+    </div>
+    <div style="padding:8px 14px;font-size:10px;color:var(--txt3);font-style:italic">
+      Nota: Este documento debe ser firmado por el jefe del área o proceso responsable de la ejecución de la actividad y el responsable del SG-SST.
+    </div>
+  </div>
+
+  <!-- Tabla de referencia de calificación -->
+  <div class="tbl-wrap" style="margin-bottom:12px">
+    <table class="insp-tbl" style="font-size:10px">
+      <thead><tr>
+        <th class="acc" colspan="2">Escala de Calificación</th>
+        <th class="acc" colspan="2">Criterio de Respuesta</th>
+      </tr></thead>
+      <tbody>
+        <tr><td style="padding:4px 8px;color:var(--ok);font-weight:600">≥ 80%</td><td style="padding:4px 8px">Confiable</td><td style="padding:4px 8px;color:var(--ok);font-weight:600">SI</td><td style="padding:4px 8px">Cumple con el criterio</td></tr>
+        <tr><td style="padding:4px 8px;color:#E65100;font-weight:600">61% – 79%</td><td style="padding:4px 8px">Aceptable con compromisos</td><td style="padding:4px 8px;color:var(--err);font-weight:600">NO</td><td style="padding:4px 8px">No cumple con el criterio</td></tr>
+        <tr><td style="padding:4px 8px;color:var(--err);font-weight:600">< 60%</td><td style="padding:4px 8px">No confiable</td><td style="padding:4px 8px;color:var(--na-txt);font-weight:600">N/A</td><td style="padding:4px 8px">Cumple con el criterio (excluido del cálculo)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</div><!-- /tab-fr-sst-42 -->
+
+
+<!-- ════════════════════════════════════════════════════════
+     PESTAÑA FR-SST-43 · REGISTRO ENTREGA DE EPP Y DOTACIÓN
+════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-fr-sst-43" data-form="fr-sst-43">
+<div class="tab-content">
+
+  <div class="doc-header">
+    <div class="doc-header-top">
+      <div class="dh-logo">
+        <img src="Assets/Logo Datcer 08022019 (1).png" alt="DATCER" class="dh-logo-img">
+        <div class="dh-tagline">SST · Seguridad y Salud en el Trabajo</div>
+      </div>
+      <div class="dh-title">
+        <div class="dh-form-title">Registro de Entrega de EPP y Dotación</div>
+        <div class="dh-form-sub">Sistema de Gestión de Seguridad y Salud en el Trabajo</div>
+      </div>
+      <div class="dh-code">
+        <span class="dh-badge">FR-SST-43</span>
+        <span class="dh-meta">Versión 01 · 18/02/2020</span>
+      </div>
+    </div>
+    <div class="id-row">
+      <div class="id-cell w3"><div class="id-label">Nombre del Trabajador</div><input class="id-input" id="43-nombre" type="text" placeholder="Nombre completo"></div>
+      <div class="id-cell"><div class="id-label">Cédula (CC)</div><input class="id-input" id="43-cc" type="text" placeholder="N° cédula"></div>
+    </div>
+    <div class="id-row">
+      <div class="id-cell w2"><div class="id-label">Proceso / Área</div><input class="id-input" id="43-proceso" type="text" placeholder="Proceso o área"></div>
+      <div class="id-cell w2"><div class="id-label">Cargo</div><input class="id-input" id="43-cargo" type="text" placeholder="Cargo del trabajador"></div>
+    </div>
+  </div>
+
+  <div class="nota-legal" style="margin-bottom:12px">
+    DATCER S.A.S., en cumplimiento de lo establecido en el Sistema de Seguridad y Salud en el Trabajo y demás leyes en
+    materia de riesgos laborales, deja constancia de la entrega de los elementos de protección personal y dotación a los
+    empleados de acuerdo con las labores a ejecutar.
+  </div>
+
+  <div class="tbl-wrap">
+    <table class="insp-tbl" id="tbl-43">
+      <thead>
+        <tr>
+          <th class="acc" style="min-width:100px">FECHA</th>
+          <th class="acc" style="min-width:260px;text-align:left;padding-left:9px">E.P.P. Y/O DOTACIÓN</th>
+          <th class="acc" style="min-width:54px">CANT.</th>
+          <th style="min-width:160px">FIRMA DE RECIBIDO</th>
+        </tr>
+      </thead>
+      <tbody id="43-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="nota-legal" style="margin:12px 0;font-style:italic">
+    Soy consciente que no usar los elementos de protección personal recibidos puede afectar mi salud y bienestar general,
+    así como generarme sanciones administrativas por parte de la empresa de acuerdo con lo establecido por la normatividad
+    vigente y el reglamento interno de trabajo.
+  </div>
+
+  <div class="footer-row">
+    <div class="firma-box" style="flex:1">
+      <div class="box-label">Firma del Trabajador</div>
+      <p style="font-size:11px;color:var(--txt3)">Constancia de recibido conforme</p>
+      <div class="firma-line">Firma · Nombre legible</div>
+    </div>
+    <div class="obs-box" style="flex:2">
+      <div class="box-label">Observaciones</div>
+      <textarea id="43-obsgen" placeholder="Observaciones sobre la entrega de EPP y dotación..."></textarea>
+    </div>
+  </div>
+
+</div>
+</div><!-- /tab-fr-sst-43 -->
+
+
+<div id="toast"></div>
+
+<!-- ════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════ -->
+<script>
+/* ─── DATOS FR-SST-36 ─── */
+const D36_MENORES = [
+  {num:1,  tipo:'ALICATES',           asp:['MORDAZAS - FILO','MANGO','AISLANTE']},
+  {num:2,  tipo:'DESTORNILLADORES',   asp:['MANGO','AISLANTE','PUNTA','CUÑA O VÁSTAGO']},
+  {num:3,  tipo:'CIZALLA',            asp:['MORDAZAS - QUIJADA','FILO','ESTADO EN GENERAL']},
+  {num:4,  tipo:'DECÁMETROS',         asp:['CINTA MÉTRICA (SIN ÓXIDO)','ESTADO EN GENERAL']},
+  {num:5,  tipo:'FLEXÓMETROS',        asp:['CINTA MÉTRICA (SIN ÓXIDOS)','ESTADO EN GENERAL']},
+  {num:6,  tipo:'HOMBRE SOLO',        asp:['MORDAZAS O QUIJADAS','MANGO','TORNILLOS DE UNIÓN BIEN APRETADOS','RESORTE']},
+  {num:7,  tipo:'LIMAS',              asp:['ESTADO EN GENERAL']},
+  {num:8,  tipo:'MACETA',             asp:['MANGO','CABEZA']},
+  {num:9,  tipo:'MARTILLO DE UÑA',    asp:['MANGO','CABEZA','OJO','SACA CLAVOS','ESTADO EN GENERAL']},
+  {num:10, tipo:'NIVEL',              asp:['ESTADO EN GENERAL']},
+  {num:11, tipo:'SEGUETA',            asp:['HOJA','MANGO','SEGURO','MARCO']},
+  {num:12, tipo:'PALA',               asp:['MANGO','ESTADO GENERAL']},
+  {num:13, tipo:'PICA',               asp:['MANGO','PUNTA','PALA (hoja)','ESTADO GENERAL']},
+  {num:14, tipo:'CINCEL',             asp:['CABEZA','MANGO','CUÑA','ARISTA DE CORTE - FILO','ESTADO GENERAL']},
+  {num:15, tipo:'OTROS',              asp:['']}
+];
+const D36_ELEC = [
+  {num:16, tipo:'SIERRA CIRCULAR',       asp:['CONEXIÓN ELÉCTRICA - CLAVIJA - ENCAUCHETADO','MANGO','PROTECTOR']},
+  {num:17, tipo:'COMPRESOR',             asp:['CONEXIÓN ELÉCTRICA - CLAVIJA - ENCAUCHETADO','INTERRUPTOR DE ENERGÍA']},
+  {num:18, tipo:'ESMERIL',               asp:['ESTADO EN GENERAL']},
+  {num:19, tipo:'PULIDORA / TRONZADORA', asp:[
+    'CABLEADO RECUBIERTO EN CAUCHO, LIBRE DE ABRASIONES Y CON CLAVIJAS DE SEGURIDAD',
+    'CONEXIÓN A TABLERO QUE RESISTE EL VOLTAJE DEL EQUIPO',
+    'SITIO DE CORTE ACONDICIONADO',
+    'CONEXIONES ELÉCTRICAS PROTEGIDAS DE LA HUMEDAD',
+    'CONEXIÓN ELÉCTRICA CON POLO A TIERRA',
+    'GUARDA DE DISCO PRESENTE',
+    'TAPAS Y/O GUARDAS CUBREN COMPLETAMENTE LAS PARTES EN MOVIMIENTO',
+    'INTERRUPTOR DE ENERGÍA',
+    'HOJA DE VIDA DE LA PULIDORA O TRONZADORA',
+    'GUARDA BIEN ASEGURADA'
+  ]},
+  {num:20, tipo:'SOPLADORA',             asp:['CONEXIÓN ELÉCTRICA - CLAVIJA - ENCAUCHETADO','INTERRUPTOR DE ENERGÍA','MANGO','ESTADO GENERAL']},
+  {num:21, tipo:'TALADRO PERCUTOR',      asp:['CONEXIÓN ELÉCTRICA - CLAVIJA - ENCAUCHETADO','MANDRIL','INTERRUPTOR DE ENERGÍA','MANGO']},
+  {num:22, tipo:'OTROS',                 asp:['ESTADO EN GENERAL']}
+];
+
+/* ─── DATOS FR-SST-37 ─── */
+const D37 = [
+  {sec:'ASPECTOS GENERALES', items:[
+    {num:1,  txt:'Tiene las zapatas de soporte adecuadas y en buen estado.'},
+    {num:2,  txt:'Las áreas tanto por arriba como por debajo de la escalera están libres de obstrucciones.'},
+    {num:3,  txt:'Las escaleras son usadas frente a puertas solo si la puerta está bloqueada, con llave o resguarda.'},
+    {num:4,  txt:'Se encuentra en buen estado (sin golpes, dobleces o señales de corrosión).'},
+    {num:5,  txt:'La escalera está amarrada, bloqueada o asegurada para que no se mueva.'},
+    {num:6,  txt:'Todas las partes están libres de filos cortantes.'},
+    {num:7,  txt:'Cuenta con todos los escalones en buen estado (Sin fisuras - Hundimientos - Grietas).'},
+    {num:8,  txt:'La escalera es dieléctrica y en fibra de vidrio de acuerdo a la actividad a realizar.'},
+    {num:9,  txt:'El tipo de escalera es de acuerdo al peso, carga y resistencia de la actividad a ejecutar.'},
+    {num:10, txt:'Las escaleras están libres de grasa, aceites, pintura, barro y otras sustancias resbaladizas.'},
+    {num:11, txt:'Los largueros de la escalera se encuentran en buen estado.'}
+  ]},
+  {sec:'ESCALERA DE EXTENSIÓN', items:[
+    {num:12, txt:'La base de la escalera está colocada a una distancia no mayor a 1/4 de longitud apoyada de la parte superior en la pared.'},
+    {num:13, txt:'Las dos secciones de la escalera son menores de 18 metros.'},
+    {num:14, txt:'La longitud que sobresale por encima del punto de apoyo es de 1 metro.'},
+    {num:15, txt:'Las extensiones de escaleras ruedan correctamente dentro de las guías de la escalera principal.'},
+    {num:16, txt:'Los ganchos de seguridad de la extensión aseguran correctamente en los peldaños de la escalera principal.'},
+    {num:17, txt:'Las secciones de la escalera están puestas de tal forma que la sección superior puede subirse y bajarse.'}
+  ]},
+  {sec:'ESCALERA TIJERA', items:[
+    {num:18, txt:'El ángulo de abertura de la escalera de tijera tiene 30° como máximo; cuenta con la barra de tensión extendida completamente.'},
+    {num:19, txt:'Las ménsulas diagonales están en buenas condiciones.'},
+    {num:20, txt:'La repisa o plataforma de trabajo se encuentra en buenas condiciones (Sin fisuras - Grietas).'},
+    {num:21, txt:'Las barras de tensión están en condiciones seguras (Sin deterioros - fisuras - Hundimientos - Grietas).'}
+  ]},
+  {sec:'ESCALERA SIMPLE', items:[
+    {num:22, txt:'La longitud que sobresale por encima del punto de apoyo es de 1 metro.'},
+    {num:23, txt:'El ángulo de inclinación de la escalera es de 70° con respecto a la superficie vertical (muros) de apoyo.'},
+    {num:24, txt:'La escalera cuenta con todos los seguros en buen estado (Sin deterioros - fisuras - Hundimientos).'},
+    {num:25, txt:'Los sistemas de bloqueo están sin deterioro y deformaciones.'},
+    {num:26, txt:'La escalera está amarrada a una estructura de soporte fijo y seguro.'}
+  ]}
+];
+
+/* ─── ESTADOS ─── */
+const _states = {};
+function getState(code){
+  if(!_states[code]){
+    try{ _states[code] = JSON.parse(localStorage.getItem('datcer:'+code) || '{}'); }
+    catch(e){ _states[code] = {}; }
+  }
+  return _states[code];
+}
+function saveState(code){
+  localStorage.setItem('datcer:'+code, JSON.stringify(_states[code]));
+}
+function cellVal(code, key){ return (getState(code).cells || {})[key] || ''; }
+function setCell(code, key, val){
+  const s = getState(code);
+  if(!s.cells) s.cells = {};
+  s.cells[key] = val;
+}
+
+/* ─── CICLOS ─── */
+const CYCLE_BMN = ['','B','M','N'];
+const CYCLE_DAY = ['','✓'];
+
+/* ─── TOAST ─── */
+let toastTimer;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 2400);
+}
+
+/* ─── SAVE ─── */
+let saveTimer;
+function scheduleSave(){
+  const el = document.getElementById('savestate');
+  el.textContent = 'editando…'; el.classList.remove('ok');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{ saveAll(); }, 1000);
+}
+function saveAll(){
+  saveForm36(); saveForm37(); saveForm38(); saveForm39(); saveForm40(); saveForm41(); saveForm42(); saveForm43();
+  const el = document.getElementById('savestate');
+  el.textContent = 'guardado ✓'; el.classList.add('ok');
+}
+
+/* ─── BUILD DAY HEADER CELLS ─── */
+function buildDayThs(trId, count=31){
+  const tr = document.getElementById(trId);
+  if(!tr) return;
+  for(let d=1;d<=count;d++){
+    const th = document.createElement('th');
+    th.textContent = d;
+    th.style.cssText = 'min-width:21px;width:21px;padding:4px 1px;font-size:8px;background:#1D1D1F;color:#EBEBF5';
+    tr.appendChild(th);
+  }
+}
+
+/* ─── BUILD FR-SST-36 TABLES ─── */
+function build36Table(tbodyId, tools, prefix, catLabel){
+  const tbody = document.getElementById(tbodyId);
+  const code = 'fr-sst-36';
+  // Category row
+  const cat = tbody.insertRow();
+  cat.className = 'sec-row';
+  const catTd = cat.insertCell();
+  catTd.colSpan = 3 + 31 + 1;
+  catTd.textContent = catLabel;
+
+  tools.forEach(tool => {
+    tool.asp.forEach((asp, ai) => {
+      const tr = tbody.insertRow();
+      if(ai === 0){
+        const tdN = tr.insertCell(); tdN.className='tc-num'; tdN.rowSpan=tool.asp.length; tdN.textContent=tool.num;
+        const tdT = tr.insertCell(); tdT.className='tc-tipo'; tdT.rowSpan=tool.asp.length; tdT.textContent=tool.tipo;
+      }
+      const tdA = tr.insertCell(); tdA.className='tc-asp'; tdA.textContent=asp;
+      for(let d=1;d<=31;d++){
+        const key = `${prefix}_${tool.num}_${ai}_${d}`;
+        const td = tr.insertCell(); td.className='tc-day';
+        const dc = document.createElement('div'); dc.className='dc';
+        dc.dataset.key=key; dc.dataset.form=code; dc.dataset.v=cellVal(code,key);
+        dc.textContent = dc.dataset.v==='N' ? 'N/A' : dc.dataset.v;
+        dc.addEventListener('click', cycleBMN);
+        td.appendChild(dc);
+      }
+      if(ai===0){
+        const tdO = tr.insertCell(); tdO.className='tc-obs'; tdO.rowSpan=tool.asp.length;
+        const obsKey=`${prefix}_${tool.num}_obs`;
+        const inp = document.createElement('input'); inp.type='text'; inp.placeholder='—';
+        inp.value = cellVal(code, obsKey);
+        inp.addEventListener('input',()=>{ setCell(code,obsKey,inp.value); scheduleSave(); });
+        tdO.appendChild(inp);
+      }
+    });
+  });
+}
+
+function cycleBMN(e){
+  const dc = e.currentTarget;
+  const cur = dc.dataset.v;
+  const next = CYCLE_BMN[(CYCLE_BMN.indexOf(cur)+1) % CYCLE_BMN.length];
+  dc.dataset.v = next;
+  dc.textContent = next==='N' ? 'N/A' : next;
+  setCell(dc.dataset.form, dc.dataset.key, next);
+  scheduleSave();
+}
+
+/* ─── BUILD FR-SST-37 TABLE ─── */
+function build37Table(){
+  const tbody = document.getElementById('37-tbody');
+  const daysThRow = document.getElementById('37-days-row');
+  const code = 'fr-sst-37';
+
+  // Add day th cells to the second header row
+  for(let d=1;d<=31;d++){
+    const th = document.createElement('th');
+    th.textContent = d;
+    th.style.cssText = 'min-width:21px;width:21px;padding:4px 1px;font-size:8px;background:#1D1D1F;color:#EBEBF5';
+    daysThRow.appendChild(th);
+  }
+
+  D37.forEach(section => {
+    // Section row
+    const secTr = tbody.insertRow();
+    secTr.className = 'sec-row';
+    const secTd = secTr.insertCell();
+    secTd.colSpan = 2 + 3 + 1 + 31;
+    secTd.textContent = '⬥  ' + section.sec;
+
+    section.items.forEach(item => {
+      const tr = tbody.insertRow();
+      // N°
+      const tdN = tr.insertCell(); tdN.className='tc-num'; tdN.textContent=item.num;
+      // Aspecto
+      const tdA = tr.insertCell(); tdA.className='tc-asp'; tdA.style.whiteSpace='normal'; tdA.style.lineHeight='1.35'; tdA.textContent=item.txt;
+      // SI/NO/NA toggle
+      const sinoCells = ['SI','NO','NA'];
+      const sinoKey = `37_${item.num}_sino`;
+      const curSino = cellVal(code, sinoKey);
+      sinoCells.forEach(val => {
+        const tdS = tr.insertCell();
+        tdS.style.cssText = 'width:28px;min-width:28px;text-align:center;padding:2px';
+        const btn = document.createElement('button');
+        btn.className = 'sino-btn';
+        btn.textContent = val;
+        btn.dataset.key = sinoKey; btn.dataset.val = val; btn.dataset.form = code;
+        if(curSino === val) btn.dataset.active = val;
+        btn.addEventListener('click', clickSino);
+        tdS.appendChild(btn);
+      });
+      // Observación
+      const tdO = tr.insertCell(); tdO.className='tc-obs';
+      const obsKey = `37_${item.num}_obs`;
+      const inp = document.createElement('input'); inp.type='text'; inp.placeholder='—';
+      inp.value = cellVal(code, obsKey);
+      inp.addEventListener('input',()=>{ setCell(code,obsKey,inp.value); scheduleSave(); });
+      tdO.appendChild(inp);
+      // Day cells
+      for(let d=1;d<=31;d++){
+        const dayKey = `37_${item.num}_${d}`;
+        const tdD = tr.insertCell(); tdD.className='tc-day';
+        const dc = document.createElement('div'); dc.className='dc';
+        dc.dataset.key=dayKey; dc.dataset.form=code;
+        const v = cellVal(code, dayKey);
+        dc.dataset.v = v;
+        dc.textContent = v==='N' ? 'N/A' : v;
+        dc.addEventListener('click', cycleSIDAY);
+        tdD.appendChild(dc);
+      }
+    });
+  });
+}
+
+function clickSino(e){
+  const btn = e.currentTarget;
+  const code = btn.dataset.form;
+  const key  = btn.dataset.key;
+  const val  = btn.dataset.val;
+  // find siblings
+  const row = btn.closest('tr');
+  row.querySelectorAll('.sino-btn[data-key="'+key+'"]').forEach(b=>delete b.dataset.active);
+  const cur = cellVal(code, key);
+  if(cur === val){ setCell(code,key,''); }
+  else { btn.dataset.active = val; setCell(code,key,val); }
+  scheduleSave();
+}
+
+const CYCLE_SINO = ['','SI','NO','NA'];
+function cycleSIDAY(e){
+  const dc = e.currentTarget;
+  const code = dc.dataset.form;
+  const key = dc.dataset.key;
+  const cur = dc.dataset.v;
+  const next = CYCLE_SINO[(CYCLE_SINO.indexOf(cur)+1) % CYCLE_SINO.length];
+  dc.dataset.v = next;
+  dc.textContent = next==='NA' ? 'N/A' : next;
+  if(next==='SI'){ dc.style.background='var(--ok-bg)'; dc.style.color='var(--ok)'; }
+  else if(next==='NO'){ dc.style.background='var(--err-bg)'; dc.style.color='var(--err)'; }
+  else if(next==='NA'){ dc.style.background='var(--na-bg)'; dc.style.color='var(--na-txt)'; }
+  else { dc.style.background=''; dc.style.color='transparent'; }
+  setCell(code, key, next);
+  scheduleSave();
+}
+
+/* ─── FORM META HELPERS ─── */
+const META36 = ['nombre','cargo','inspector','cedula','proyecto','mes','obsgen'];
+const META37 = ['mes','responsable','cargo','cedula','cliente','contratista','tipo','clasificacion','certificacion','obsgen'];
+
+function saveForm36(){
+  const s = getState('fr-sst-36');
+  s.meta = {};
+  META36.forEach(k=>{ const el=document.getElementById('36-'+k); if(el) s.meta[k]=el.value; });
+  saveState('fr-sst-36');
+}
+function saveForm37(){
+  const s = getState('fr-sst-37');
+  s.meta = {};
+  META37.forEach(k=>{ const el=document.getElementById('37-'+k); if(el) s.meta[k]=el.value; });
+  saveState('fr-sst-37');
+}
+function loadForm36(){
+  const s = getState('fr-sst-36');
+  if(s.meta) META36.forEach(k=>{ const el=document.getElementById('36-'+k); if(el&&s.meta[k]!=null) el.value=s.meta[k]; });
+}
+function loadForm37(){
+  const s = getState('fr-sst-37');
+  if(s.meta) META37.forEach(k=>{ const el=document.getElementById('37-'+k); if(el&&s.meta[k]!=null) el.value=s.meta[k]; });
+  // Restore sino buttons
+  document.querySelectorAll('.sino-btn').forEach(btn=>{
+    const v = cellVal('fr-sst-37', btn.dataset.key);
+    if(v && v===btn.dataset.val) btn.dataset.active = v;
+    else delete btn.dataset.active;
+  });
+  // Restore day cells for 37
+  document.querySelectorAll('#tab-fr-sst-37 .dc').forEach(dc=>{
+    const v = cellVal('fr-sst-37', dc.dataset.key);
+    dc.dataset.v = v;
+    dc.textContent = v==='NA'?'N/A': v==='N'?'N/A': v;
+    if(v==='SI'){ dc.style.background='var(--ok-bg)'; dc.style.color='var(--ok)'; }
+    else if(v==='NO'){ dc.style.background='var(--err-bg)'; dc.style.color='var(--err)'; }
+    else if(v==='NA'||v==='N'){ dc.style.background='var(--na-bg)'; dc.style.color='var(--na-txt)'; }
+    else{ dc.style.background=''; dc.style.color='transparent'; }
+  });
+}
+
+/* ─── BUILD FR-SST-38 TABLE ─── */
+const D38_ROWS = 20;
+function build38Table(){
+  const tbody = document.getElementById('38-tbody');
+  const code = 'fr-sst-38';
+  for(let i=1; i<=D38_ROWS; i++){
+    const tr = tbody.insertRow();
+    // Tipo
+    const tdT = tr.insertCell(); tdT.className='tc-tipo-sig';
+    const tipoKey = `38_tipo_${i}`;
+    const inp = document.createElement('input'); inp.type='text'; inp.placeholder='Tipo de señalización...';
+    inp.value = cellVal(code, tipoKey);
+    inp.addEventListener('input',()=>{ setCell(code, tipoKey, inp.value); scheduleSave(); });
+    tdT.appendChild(inp);
+    // 4 inspection blocks
+    for(let j=1; j<=4; j++){
+      const cantKey = `38_cant_${i}_${j}`;
+      const estKey  = `38_est_${i}_${j}`;
+      // CANTIDAD
+      const tdC = tr.insertCell(); tdC.className='tc-cant';
+      const cantInp = document.createElement('input'); cantInp.type='number'; cantInp.min='0';
+      cantInp.value = cellVal(code, cantKey);
+      cantInp.addEventListener('input',()=>{ setCell(code, cantKey, cantInp.value); scheduleSave(); });
+      tdC.appendChild(cantInp);
+      // BUENO
+      const tdB = tr.insertCell(); tdB.className='tc-bm';
+      const bmB = document.createElement('div'); bmB.className='bm';
+      bmB.dataset.key=estKey; bmB.dataset.val='B'; bmB.dataset.form=code;
+      bmB.textContent='B';
+      const curEst = cellVal(code, estKey);
+      if(curEst==='B') bmB.classList.add('on-b');
+      bmB.addEventListener('click', clickBM);
+      tdB.appendChild(bmB);
+      // MALO
+      const tdM = tr.insertCell(); tdM.className='tc-bm';
+      const bmM = document.createElement('div'); bmM.className='bm';
+      bmM.dataset.key=estKey; bmM.dataset.val='M'; bmM.dataset.form=code;
+      bmM.textContent='M';
+      if(curEst==='M') bmM.classList.add('on-m');
+      bmM.addEventListener('click', clickBM);
+      tdM.appendChild(bmM);
+    }
+  }
+}
+function clickBM(e){
+  const bm = e.currentTarget;
+  const code = bm.dataset.form;
+  const key  = bm.dataset.key;
+  const val  = bm.dataset.val;
+  const cur  = cellVal(code, key);
+  // find sibling in same row
+  const row = bm.closest('tr');
+  row.querySelectorAll(`.bm[data-key="${key}"]`).forEach(el=>{
+    el.classList.remove('on-b','on-m');
+  });
+  if(cur === val){ setCell(code, key, ''); }
+  else {
+    bm.classList.add(val==='B' ? 'on-b' : 'on-m');
+    setCell(code, key, val);
+  }
+  scheduleSave();
+}
+
+const META38 = ['responsable','f1','f2','f3','f4','recomendaciones'];
+function saveForm38(){
+  const s = getState('fr-sst-38');
+  s.meta = {};
+  META38.forEach(k=>{ const el=document.getElementById('38-'+k); if(el) s.meta[k]=el.value; });
+  saveState('fr-sst-38');
+}
+function loadForm38(){
+  const s = getState('fr-sst-38');
+  if(s.meta) META38.forEach(k=>{ const el=document.getElementById('38-'+k); if(el&&s.meta[k]!=null) el.value=s.meta[k]; });
+  // Restore BM state
+  document.querySelectorAll('#tab-fr-sst-38 .bm').forEach(bm=>{
+    const v = cellVal('fr-sst-38', bm.dataset.key);
+    bm.classList.remove('on-b','on-m');
+    if(v==='B') bm.classList.add('on-b');
+    else if(v==='M') bm.classList.add('on-m');
+  });
+}
+
+/* ─── DATOS FR-SST-39 ─── */
+const D39 = [
+  {sec:'MONTAJE', items:[
+    {num:1,  txt:'Los elementos (cables, pescantes, ganchos) son trasladados sin sufrir golpes.'},
+    {num:2,  txt:'Se ensambla la plataforma desde el nivel más bajo.'}
+  ]},
+  {sec:'ANCLAJES', items:[
+    {num:3,  txt:'Cumple con la resistencia, es sólido, estable.'},
+    {num:4,  txt:'Los pescantes están sujetos a la estructura.'},
+    {num:5,  txt:'Los soportes de enganche resisten el peso del andamio, trabajadores y material.'}
+  ]},
+  {sec:'CABLES', items:[
+    {num:6,  txt:'Están conformados por torones y alma de acero.'},
+    {num:7,  txt:'En la parte superior (anclaje) están sujetos con tres perros por guaya.'},
+    {num:8,  txt:'Los perros son del mismo diámetro que la guaya.'},
+    {num:9,  txt:'Están libres de hilos sueltos o reventados.'},
+    {num:10, txt:'Están libres de nudos o partes estranguladas.'},
+    {num:11, txt:'El alma está cubierta por los torones.'},
+    {num:12, txt:'Se mantienen los dos últimos metros de cable enrollados.'}
+  ]},
+  {sec:'PLATAFORMA', items:[
+    {num:13, txt:'Es completa y libre de vacíos.'},
+    {num:14, txt:'Los tablones o plataforma resisten tres veces el peso del trabajador y material.'},
+    {num:15, txt:'Los tablones o plataforma están libres de fisuras y torcidos.'},
+    {num:16, txt:'La plataforma cuenta con doble pasamano.'},
+    {num:17, txt:'La plataforma cuenta con rodapiés.'},
+    {num:18, txt:'Cuenta con protección para evitar caída de material.'}
+  ]},
+  {sec:'MECANISMO', items:[
+    {num:19, txt:'Se probó el buen funcionamiento de trinquetes, piñones y palanca.'},
+    {num:20, txt:'Se verificó el buen funcionamiento del freno.'},
+    {num:21, txt:'Los ganchos están libres de óxido y fisuras.'}
+  ]},
+  {sec:'CONDICIONES DEL ÁREA DE TRABAJO', items:[
+    {num:22, txt:'El área está libre de lluvias fuertes.'},
+    {num:23, txt:'El área está libre de tormentas eléctricas.'},
+    {num:24, txt:'Se señalizó el área.'}
+  ]}
+];
+
+const CYCLE_SNa = ['','S','N','NA'];
+function build39Table(){
+  const code = 'fr-sst-39';
+  // Day headers
+  const daysRow = document.getElementById('39-days-row');
+  for(let d=1;d<=31;d++){
+    const th = document.createElement('th');
+    th.textContent = d;
+    th.style.cssText = 'min-width:21px;width:21px;padding:4px 1px;font-size:8px;background:#1D1D1F;color:#EBEBF5';
+    daysRow.appendChild(th);
+  }
+  const tbody = document.getElementById('39-tbody');
+  D39.forEach(section=>{
+    const secTr = tbody.insertRow(); secTr.className='sec-row';
+    const secTd = secTr.insertCell(); secTd.colSpan = 2 + 31 + 1;
+    secTd.textContent = '⬥  ' + section.sec;
+    section.items.forEach(item=>{
+      const tr = tbody.insertRow();
+      const tdN = tr.insertCell(); tdN.className='tc-num'; tdN.textContent=item.num;
+      const tdA = tr.insertCell(); tdA.className='tc-asp'; tdA.style.whiteSpace='normal'; tdA.style.lineHeight='1.35'; tdA.textContent=item.txt;
+      for(let d=1;d<=31;d++){
+        const key = `39_${item.num}_${d}`;
+        const td  = tr.insertCell(); td.className='tc-day';
+        const dc  = document.createElement('div'); dc.className='dc';
+        dc.dataset.key=key; dc.dataset.form=code;
+        const v = cellVal(code, key);
+        dc.dataset.v = v;
+        applySnStyle(dc, v);
+        dc.addEventListener('click', cycleSnDay);
+        td.appendChild(dc);
+      }
+      const tdO = tr.insertCell(); tdO.className='tc-obs';
+      const obsKey=`39_${item.num}_obs`;
+      const inp=document.createElement('input'); inp.type='text'; inp.placeholder='—';
+      inp.value=cellVal(code,obsKey);
+      inp.addEventListener('input',()=>{ setCell(code,obsKey,inp.value); scheduleSave(); });
+      tdO.appendChild(inp);
+    });
+  });
+}
+function applySnStyle(dc, v){
+  dc.textContent = v==='NA'?'NA': v;
+  if(v==='S'){ dc.style.background='var(--ok-bg)'; dc.style.color='var(--ok)'; }
+  else if(v==='N'){ dc.style.background='var(--err-bg)'; dc.style.color='var(--err)'; }
+  else if(v==='NA'){ dc.style.background='var(--na-bg)'; dc.style.color='var(--na-txt)'; }
+  else{ dc.style.background=''; dc.style.color='transparent'; }
+}
+function cycleSnDay(e){
+  const dc = e.currentTarget;
+  const cur = dc.dataset.v;
+  const next = CYCLE_SNa[(CYCLE_SNa.indexOf(cur)+1) % CYCLE_SNa.length];
+  dc.dataset.v = next;
+  applySnStyle(dc, next);
+  setCell(dc.dataset.form, dc.dataset.key, next);
+  scheduleSave();
+}
+
+const META39 = ['nombre','cargo','cedula','responsable','ced-sst','proyecto','mes','obsgen'];
+function saveForm39(){
+  const s = getState('fr-sst-39'); s.meta={};
+  META39.forEach(k=>{ const el=document.getElementById('39-'+k); if(el) s.meta[k]=el.value; });
+  saveState('fr-sst-39');
+}
+function loadForm39(){
+  const s = getState('fr-sst-39');
+  if(s.meta) META39.forEach(k=>{ const el=document.getElementById('39-'+k); if(el&&s.meta[k]!=null) el.value=s.meta[k]; });
+  document.querySelectorAll('#tab-fr-sst-39 .dc').forEach(dc=>{
+    const v = cellVal('fr-sst-39', dc.dataset.key);
+    dc.dataset.v = v; applySnStyle(dc, v);
+  });
+}
+
+/* ─── DATOS FR-SST-40 ─── */
+const D40_ITEMS = [
+  {num:1,  el:'¿Se lleva registro de uso de elementos del botiquín en los formatos establecidos?', noVenc:true},
+  {num:2,  el:'Jabón líquido'},
+  {num:3,  el:'Esparadrapo tela'},
+  {num:4,  el:'Cinta micropore'},
+  {num:5,  el:'Solución salina'},
+  {num:6,  el:'Gasa estéril'},
+  {num:7,  el:'Venda triangular'},
+  {num:8,  el:'Venda de algodón laminado 3 × 5 yardas'},
+  {num:9,  el:'Venda elástica 2 × 5 yardas'},
+  {num:10, el:'Venda elástica 3 × 5 yardas'},
+  {num:11, el:'Venda elástica 5 × 5 yardas'},
+  {num:12, el:'Linterna + baterías AAA'},
+  {num:13, el:'Pito'},
+  {num:14, el:'Bajalenguas'},
+  {num:15, el:'Bolsas Ziploc pequeñas y medianas'},
+  {num:16, el:'Tijeras punta roma'},
+  {num:17, el:'Curas'},
+  {num:18, el:'Parches oculares'},
+  {num:19, el:'Inmovilizador cervical ajustable'},
+  {num:20, el:'Alcohol antiséptico frasco × 275 ml'},
+  {num:21, el:'Termómetro de mercurio o digital'},
+  {sec:'ELEMENTOS DE BIOSEGURIDAD'},
+  {num:22, el:'Gafas de seguridad'},
+  {num:23, el:'Guantes tipo vinilo o látex'},
+  {num:24, el:'Tapabocas'}
+];
+const CYCLE_CAL = ['','NA','B','M'];
+const CYCLE_CTR = ['','A','B'];
+
+function build40Table(){
+  const code = 'fr-sst-40';
+  const tbody = document.getElementById('40-tbody');
+  D40_ITEMS.forEach(row=>{
+    if(row.sec){
+      const tr = tbody.insertRow(); tr.className='sec-row';
+      const td = tr.insertCell(); td.colSpan=10; td.textContent='⬥  '+row.sec; return;
+    }
+    const tr = tbody.insertRow();
+    // N°
+    const tdN = tr.insertCell(); tdN.className='tc-num'; tdN.textContent=row.num;
+    // Elemento
+    const tdE = tr.insertCell(); tdE.className='tc-asp'; tdE.style.fontSize='10.5px'; tdE.textContent=row.el;
+    // Cantidad
+    const tdC = tr.insertCell(); tdC.className='tc-cant-s';
+    const cInp = document.createElement('input'); cInp.type='number'; cInp.min='0';
+    const cKey=`40_cant_${row.num}`; cInp.value=cellVal(code,cKey);
+    cInp.addEventListener('input',()=>{setCell(code,cKey,cInp.value);scheduleSave();});
+    tdC.appendChild(cInp);
+    // Vencimiento
+    const tdV = tr.insertCell(); tdV.className='tc-venc';
+    if(!row.noVenc){
+      const vInp = document.createElement('input'); vInp.type='date';
+      const vKey=`40_venc_${row.num}`; vInp.value=cellVal(code,vKey);
+      vInp.addEventListener('change',()=>{setCell(code,vKey,vInp.value);scheduleSave();});
+      tdV.appendChild(vInp);
+    }
+    // CALIFICACIÓN (NA / B / M)
+    const calKey=`40_cal_${row.num}`;
+    ['NA','B','M'].forEach(v=>{
+      const td = tr.insertCell(); td.className='tc-cal';
+      const cv = document.createElement('div'); cv.className='cv';
+      cv.textContent=v; cv.dataset.key=calKey; cv.dataset.val=v; cv.dataset.form=code;
+      const cur=cellVal(code,calKey);
+      if(cur===v) cv.classList.add(v==='NA'?'on-na':v==='B'?'on-b':'on-m');
+      cv.addEventListener('click', clickCal40);
+      td.appendChild(cv);
+    });
+    // CONTROL (A / B)
+    const ctrKey=`40_ctrl_${row.num}`;
+    ['A','B'].forEach(v=>{
+      const td = tr.insertCell(); td.className='tc-ctrl';
+      const cv = document.createElement('div'); cv.className='cv';
+      cv.textContent=v; cv.dataset.key=ctrKey; cv.dataset.val=v; cv.dataset.form=code;
+      const cur=cellVal(code,ctrKey);
+      if(cur===v) cv.classList.add(v==='A'?'on-a':'on-b');
+      cv.addEventListener('click', clickCal40);
+      td.appendChild(cv);
+    });
+    // Observaciones
+    const tdO = tr.insertCell(); tdO.className='tc-obs';
+    const oKey=`40_obs_${row.num}`; const oInp=document.createElement('input'); oInp.type='text'; oInp.placeholder='—';
+    oInp.value=cellVal(code,oKey);
+    oInp.addEventListener('input',()=>{setCell(code,oKey,oInp.value);scheduleSave();});
+    tdO.appendChild(oInp);
+  });
+}
+function clickCal40(e){
+  const cv=e.currentTarget; const code=cv.dataset.form; const key=cv.dataset.key; const val=cv.dataset.val;
+  const cur=cellVal(code,key);
+  cv.closest('tr').querySelectorAll(`.cv[data-key="${key}"]`).forEach(el=>el.className='cv');
+  if(cur===val){ setCell(code,key,''); }
+  else{
+    const cls = val==='NA'?'on-na':val==='B'?'on-b':val==='M'?'on-m':'on-a';
+    cv.classList.add(cls); setCell(code,key,val);
+  }
+  scheduleSave();
+}
+const META40=['nombre1','cargo1','nombre2','cargo2','area','fecha','hora','resp-bot','suplente','tipo','ubicacion','obsgen'];
+function saveForm40(){
+  const s=getState('fr-sst-40'); s.meta={};
+  META40.forEach(k=>{ const el=document.getElementById('40-'+k); if(el) s.meta[k]=el.value; });
+  saveState('fr-sst-40');
+}
+function loadForm40(){
+  const s=getState('fr-sst-40');
+  if(s.meta) META40.forEach(k=>{ const el=document.getElementById('40-'+k); if(el&&s.meta[k]!=null) el.value=s.meta[k]; });
+  document.querySelectorAll('#tab-fr-sst-40 .cv').forEach(cv=>{
+    const v=cellVal('fr-sst-40',cv.dataset.key); cv.className='cv';
+    if(v===cv.dataset.val){
+      const cls=v==='NA'?'on-na':v==='B'?'on-b':v==='M'?'on-m':'on-a';
+      cv.classList.add(cls);
+    }
+  });
+}
+
+/* ─── DATOS FR-SST-41 ─── */
+const D41_ITEMS = [
+  {num:1,  txt:'¿El extintor está en el lugar indicado de acuerdo al riesgo del área y a los factores ambientales?'},
+  {num:2,  txt:'¿Es visible?'},
+  {num:3,  txt:'¿Cuenta con señalización respectiva?'},
+  {num:4,  txt:'¿El acceso al extintor se encuentra obstruido?'},
+  {num:5,  txt:'¿Ha sido activado?\n→ Verificar estado de presión.'},
+  {num:6,  txt:'¿Ha sido manipulado?\n→ Verificar cinta y pasador de seguridad.'},
+  {num:7,  txt:'¿Presenta algún tipo de deterioro?'},
+  {num:8,  txt:'¿Está equipado con un manómetro de presión?\n→ Verificar si su estado es satisfactorio.'},
+  {num:9,  txt:'¿El extintor cuenta con manguera y boquilla?'},
+  {num:10, txt:'¿Las uniones del manómetro y válvula de descarga se encuentran en buenas condiciones?'},
+  {num:11, txt:'¿El extintor cuenta con la etiqueta de revisión?\n→ Ver registro de última revisión.'},
+  {num:12, txt:'¿El extintor cuenta con etiqueta adhesiva que indica tipo, agente, fecha de recarga y vencimiento?'},
+  {num:13, txt:'¿La fecha de fabricación del cilindro está acorde a la vida útil?\n→ Ver en la base del cilindro.'},
+  {num:14, txt:'¿Se han realizado mantenimientos anuales?\n→ Ver registros.'},
+  {num:15, txt:'¿La base del extintor es segura y se encuentra en buen estado?'},
+  {num:16, txt:'¿Se tiene definido un programa de capacitación para brigadistas en control de incendios?'}
+];
+function build41Table(){
+  const code = 'fr-sst-41';
+  const tbody = document.getElementById('41-tbody');
+  D41_ITEMS.forEach(item=>{
+    const tr = tbody.insertRow();
+    const tdN = tr.insertCell(); tdN.className='tc-num'; tdN.textContent=item.num;
+    const tdD = tr.insertCell(); tdD.className='tc-asp'; tdD.style.whiteSpace='pre-line'; tdD.style.lineHeight='1.35'; tdD.textContent=item.txt;
+    const calKey=`41_cal_${item.num}`;
+    ['NA','B','M'].forEach(v=>{
+      const td=tr.insertCell(); td.className='tc-cal';
+      const cv=document.createElement('div'); cv.className='cv';
+      cv.textContent=v; cv.dataset.key=calKey; cv.dataset.val=v; cv.dataset.form=code;
+      const cur=cellVal(code,calKey);
+      if(cur===v) cv.classList.add(v==='NA'?'on-na':v==='B'?'on-b':'on-m');
+      cv.addEventListener('click',clickCal40); td.appendChild(cv);
+    });
+    const ctrKey=`41_ctrl_${item.num}`;
+    ['A','B'].forEach(v=>{
+      const td=tr.insertCell(); td.className='tc-ctrl';
+      const cv=document.createElement('div'); cv.className='cv';
+      cv.textContent=v; cv.dataset.key=ctrKey; cv.dataset.val=v; cv.dataset.form=code;
+      const cur=cellVal(code,ctrKey);
+      if(cur===v) cv.classList.add(v==='A'?'on-a':'on-b');
+      cv.addEventListener('click',clickCal40); td.appendChild(cv);
+    });
+    const tdO=tr.insertCell(); tdO.className='tc-obs';
+    const oKey=`41_obs_${item.num}`; const oInp=document.createElement('input'); oInp.type='text'; oInp.placeholder='—';
+    oInp.value=cellVal(code,oKey);
+    oInp.addEventListener('input',()=>{setCell(code,oKey,oInp.value);scheduleSave();});
+    tdO.appendChild(oInp);
+  });
+}
+const META41=['nombre1','cargo1','nombre2','cargo2','fecha','hora','tipo','clase','agente','ubicacion','numero','capacidad','obsgen'];
+function saveForm41(){
+  const s=getState('fr-sst-41'); s.meta={};
+  META41.forEach(k=>{ const el=document.getElementById('41-'+k); if(el) s.meta[k]=el.value; });
+  saveState('fr-sst-41');
+}
+function loadForm41(){
+  const s=getState('fr-sst-41');
+  if(s.meta) META41.forEach(k=>{ const el=document.getElementById('41-'+k); if(el&&s.meta[k]!=null) el.value=s.meta[k]; });
+  document.querySelectorAll('#tab-fr-sst-41 .cv').forEach(cv=>{
+    const v=cellVal('fr-sst-41',cv.dataset.key); cv.className='cv';
+    if(v===cv.dataset.val){ cv.classList.add(v==='NA'?'on-na':v==='B'?'on-b':v==='M'?'on-m':'on-a'); }
+  });
+}
+
+/* ─── DATOS FR-SST-42 ─── */
+const D42A = [
+  '¿Se tiene implementado y se mantiene un sistema de gestión de seguridad y salud en el trabajo?',
+  '¿El sistema de gestión de SST está evaluado y certificado por la ARL con mínimo un 85%? (especifique fecha y porcentaje)',
+  'El personal debe contar con exámenes médico-ocupacionales vigentes y acordes al riesgo del cargo según el profesiograma. ¿La empresa cumple con este criterio?',
+  '¿El personal cuenta con afiliaciones o aportes de seguridad social integral vigentes?',
+  'El personal debe contar con EPP de acuerdo al riesgo y dotación estipulada en un Programa de EPP. ¿La empresa cumple?',
+  'El personal cuenta con certificados de idoneidad para las actividades operativas a realizar con DATCER S.A.S. (trabajo en alturas, soldador, CONTE, etc.)',
+  '¿Cuenta con COPASST o Vigía de SST conformado, capacitado y funcionando? (Adjunte soportes)',
+  '¿Cuenta con Comité de Convivencia Laboral conformado, capacitado y funcionando? (Adjunte soportes)',
+  '¿La empresa cuenta con la matriz de identificación de peligros, valoración del riesgo y controles de acuerdo al proyecto o servicio a prestar?',
+  '¿La empresa cuenta con procedimientos e instructivos de actividades de alto riesgo divulgados según el proyecto?',
+  '¿La empresa cuenta con un Programa de capacitación anual en SST, promoción y prevención de riesgos laborales?',
+  '¿La empresa cuenta con un procedimiento para reporte e investigación de accidentes de trabajo?',
+  '¿La empresa cuenta con un programa de protección contra caídas y personal certificado en alturas vigente (Resolución 1409/2012)?',
+  '¿Se dispone de programa de mantenimiento preventivo o correctivo de herramientas y equipos a utilizar en el servicio?',
+  '¿Cuenta con la disposición correcta de residuos sólidos y líquidos generados en el servicio a prestar?',
+  '¿Cuenta con un programa de manipulación y almacenamiento de sustancias químicas según el servicio a prestar?',
+  '¿Cuenta con un programa de inspecciones de seguridad para máquinas, equipos y herramientas con registros del último período?'
+];
+const D42B = [
+  'El personal debe contar con exámenes médico-ocupacionales vigentes y acordes al riesgo del cargo según el profesiograma. ¿La empresa cumple?',
+  '¿El personal cuenta con afiliaciones o aportes de seguridad social integral vigentes?',
+  'El personal debe contar con EPP de acuerdo al riesgo y dotación estipulada en un Programa de EPP. ¿La empresa cumple?',
+  'El personal cuenta con certificados de idoneidad para las actividades operativas a realizar con DATCER S.A.S. (trabajo en alturas, soldador, CONTE, etc.)'
+];
+
+function build42Section(tbodyId, items, prefix, scoreId){
+  const code='fr-sst-42'; const tbody=document.getElementById(tbodyId);
+  items.forEach((txt,i)=>{
+    const num=i+1; const tr=tbody.insertRow();
+    const tdD=tr.insertCell(); tdD.className='tc-asp'; tdD.style.whiteSpace='normal'; tdD.style.lineHeight='1.4'; tdD.textContent=txt;
+    const key=`${prefix}_${num}`;
+    ['SI','NO','NA'].forEach(v=>{
+      const td=tr.insertCell(); td.className='tc-sino42';
+      const sv=document.createElement('div'); sv.className='sv';
+      sv.textContent=v; sv.dataset.key=key; sv.dataset.val=v; sv.dataset.form=code; sv.dataset.sec=prefix;
+      const cur=cellVal(code,key);
+      if(cur===v) sv.classList.add(v==='SI'?'on-si':v==='NO'?'on-no':'on-na');
+      sv.addEventListener('click',clickSino42); td.appendChild(sv);
+    });
+    const tdO=tr.insertCell(); tdO.className='tc-obs';
+    const oKey=`${prefix}_${num}_obs`; const inp=document.createElement('input'); inp.type='text'; inp.placeholder='—';
+    inp.value=cellVal(code,oKey);
+    inp.addEventListener('input',()=>{setCell(code,oKey,inp.value);scheduleSave();});
+    tdO.appendChild(inp);
+  });
+  updateScore42(prefix, scoreId, items.length);
+}
+function clickSino42(e){
+  const sv=e.currentTarget; const code=sv.dataset.form; const key=sv.dataset.key; const val=sv.dataset.val; const sec=sv.dataset.sec;
+  sv.closest('tr').querySelectorAll(`.sv[data-key="${key}"]`).forEach(el=>el.className='sv');
+  const cur=cellVal(code,key);
+  if(cur!==val){ sv.classList.add(val==='SI'?'on-si':val==='NO'?'on-no':'on-na'); setCell(code,key,val); }
+  else setCell(code,key,'');
+  const scoreId = sec==='42a'?'42a-score':'42b-score';
+  const count = sec==='42a'?D42A.length:D42B.length;
+  updateScore42(sec, scoreId, count);
+  scheduleSave();
+}
+function updateScore42(prefix, scoreId, total){
+  const code='fr-sst-42';
+  let si=0, no=0;
+  for(let i=1;i<=total;i++){
+    const v=cellVal(code,`${prefix}_${i}`);
+    if(v==='SI') si++; else if(v==='NO') no++;
+  }
+  const aplicable=si+no;
+  const el=document.getElementById(scoreId); if(!el) return;
+  if(aplicable===0){
+    el.innerHTML='<span class="score-pct none">—</span><span class="score-label">Sin respuestas aún</span>';
+    return;
+  }
+  const pct=Math.round((si/aplicable)*100);
+  const cls=pct>=80?'ok':pct>=61?'warn':'bad';
+  const label=pct>=80?'Confiable':pct>=61?'Aceptable con compromisos':'No confiable';
+  el.innerHTML=`<span class="score-pct ${cls}">${pct}%</span>
+    <div class="score-bar-track"><div class="score-bar-fill ${cls}" style="width:${pct}%"></div></div>
+    <span class="score-label">${label}</span>
+    <span style="font-size:10px;color:var(--txt3)">(${si} SI / ${no} NO / ${total-si-no} N/A)</span>`;
+}
+const META42=['razon','nit','dir','tel','cel','email','contacto','resp-sst','cel-sst','email-sst','actividades',
+  'firma1-nombre','firma1-cedula','firma1-cargo','firma2-nombre','firma2-cedula','firma2-cargo'];
+function saveForm42(){
+  const s=getState('fr-sst-42'); s.meta={};
+  META42.forEach(k=>{ const el=document.getElementById('42-'+k); if(el) s.meta[k]=el.value; });
+  saveState('fr-sst-42');
+}
+function loadForm42(){
+  const s=getState('fr-sst-42');
+  if(s.meta) META42.forEach(k=>{ const el=document.getElementById('42-'+k); if(el&&s.meta[k]!=null) el.value=s.meta[k]; });
+  ['42a','42b'].forEach(prefix=>{
+    const count=prefix==='42a'?D42A.length:D42B.length;
+    document.querySelectorAll(`#tab-fr-sst-42 .sv[data-sec="${prefix}"]`).forEach(sv=>{
+      const v=cellVal('fr-sst-42',sv.dataset.key); sv.className='sv';
+      if(v===sv.dataset.val) sv.classList.add(v==='SI'?'on-si':v==='NO'?'on-no':'on-na');
+    });
+    updateScore42(prefix, prefix+'-score', count);
+  });
+}
+
+/* ─── BUILD FR-SST-43 ─── */
+const D43_ROWS = 20;
+function build43Table(){
+  const code='fr-sst-43'; const tbody=document.getElementById('43-tbody');
+  for(let i=1;i<=D43_ROWS;i++){
+    const tr=tbody.insertRow();
+    // Fecha
+    const tdF=tr.insertCell(); tdF.className='tc-venc';
+    const fInp=document.createElement('input'); fInp.type='date';
+    const fKey=`43_fecha_${i}`; fInp.value=cellVal(code,fKey);
+    fInp.addEventListener('change',()=>{setCell(code,fKey,fInp.value);scheduleSave();});
+    tdF.appendChild(fInp);
+    // EPP
+    const tdE=tr.insertCell(); tdE.className='tc-asp';
+    const eInp=document.createElement('input'); eInp.type='text'; eInp.placeholder='Elemento de protección o dotación...';
+    eInp.style.cssText='width:100%;border:none;outline:none;background:transparent;font-size:11px;font-family:inherit';
+    const eKey=`43_epp_${i}`; eInp.value=cellVal(code,eKey);
+    eInp.addEventListener('input',()=>{setCell(code,eKey,eInp.value);scheduleSave();});
+    tdE.appendChild(eInp);
+    // Cantidad
+    const tdC=tr.insertCell(); tdC.className='tc-cant-s';
+    const cInp=document.createElement('input'); cInp.type='number'; cInp.min='0';
+    const cKey=`43_cant_${i}`; cInp.value=cellVal(code,cKey);
+    cInp.addEventListener('input',()=>{setCell(code,cKey,cInp.value);scheduleSave();});
+    tdC.appendChild(cInp);
+    // Firma (visual space)
+    const tdS=tr.insertCell(); tdS.style.cssText='padding:4px 8px;border-bottom:.5px solid var(--line)';
+    const sInp=document.createElement('input'); sInp.type='text'; sInp.placeholder='—';
+    sInp.style.cssText='width:100%;border:none;outline:none;background:transparent;font-size:10px;font-family:inherit;color:var(--txt3)';
+    const sKey=`43_obs_${i}`; sInp.value=cellVal(code,sKey);
+    sInp.addEventListener('input',()=>{setCell(code,sKey,sInp.value);scheduleSave();});
+    tdS.appendChild(sInp);
+  }
+}
+const META43=['nombre','cc','proceso','cargo','obsgen'];
+function saveForm43(){
+  const s=getState('fr-sst-43'); s.meta={};
+  META43.forEach(k=>{ const el=document.getElementById('43-'+k); if(el) s.meta[k]=el.value; });
+  saveState('fr-sst-43');
+}
+function loadForm43(){
+  const s=getState('fr-sst-43');
+  if(s.meta) META43.forEach(k=>{ const el=document.getElementById('43-'+k); if(el&&s.meta[k]!=null) el.value=s.meta[k]; });
+}
+
+/* ─── TABS ─── */
+function showForm(code){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===code));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.dataset.form===code));
+}
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>showForm(btn.dataset.tab));
+});
+
+/* ─── API PÚBLICA (para el Claude de Forms SST) ─── */
+window.showForm = showForm;
+window.loadFormData = function(code, data){
+  const s = getState(code);
+  if(data.meta) s.meta = Object.assign(s.meta||{}, data.meta);
+  if(data.cells) s.cells = Object.assign(s.cells||{}, data.cells);
+  if(code==='fr-sst-36') loadForm36();
+  if(code==='fr-sst-37') loadForm37();
+  if(code==='fr-sst-38') loadForm38();
+  if(code==='fr-sst-39') loadForm39();
+  if(code==='fr-sst-40') loadForm40();
+  if(code==='fr-sst-41') loadForm41();
+  if(code==='fr-sst-42') loadForm42();
+  if(code==='fr-sst-43') loadForm43();
+};
+
+/* ─── BIND META INPUTS ─── */
+META36.forEach(k=>{ const el=document.getElementById('36-'+k); if(el){ el.addEventListener('input',scheduleSave); el.addEventListener('change',scheduleSave); }});
+META37.forEach(k=>{ const el=document.getElementById('37-'+k); if(el){ el.addEventListener('input',scheduleSave); el.addEventListener('change',scheduleSave); }});
+META38.forEach(k=>{ const el=document.getElementById('38-'+k); if(el){ el.addEventListener('input',scheduleSave); el.addEventListener('change',scheduleSave); }});
+META39.forEach(k=>{ const el=document.getElementById('39-'+k); if(el){ el.addEventListener('input',scheduleSave); el.addEventListener('change',scheduleSave); }});
+META40.forEach(k=>{ const el=document.getElementById('40-'+k); if(el){ el.addEventListener('input',scheduleSave); el.addEventListener('change',scheduleSave); }});
+META41.forEach(k=>{ const el=document.getElementById('41-'+k); if(el){ el.addEventListener('input',scheduleSave); el.addEventListener('change',scheduleSave); }});
+META42.forEach(k=>{ const el=document.getElementById('42-'+k); if(el){ el.addEventListener('input',scheduleSave); el.addEventListener('change',scheduleSave); }});
+META43.forEach(k=>{ const el=document.getElementById('43-'+k); if(el){ el.addEventListener('input',scheduleSave); el.addEventListener('change',scheduleSave); }});
+
+/* ─── BOTONES ─── */
+document.getElementById('btn-save').addEventListener('click',()=>{ saveAll(); toast('Guardado'); });
+document.getElementById('btn-clear').addEventListener('click',()=>{
+  const code = document.querySelector('.tab-panel.active').dataset.form;
+  if(!confirm('¿Limpiar el formulario '+code+'?')) return;
+  localStorage.removeItem('datcer:'+code);
+  _states[code] = {};
+  location.reload();
+});
+window.addEventListener('pagehide', saveAll);
+window.addEventListener('beforeunload', saveAll);
+
+/* ─── PWA INTEGRATION ───────────────────────────────────────
+   Activado cuando admin.js abre esta página con ?pwa=1
+   El registro completo llega en localStorage['sst_preview_record']
+──────────────────────────────────────────────────────────── */
+(function(){
+  const params = new URLSearchParams(location.search);
+  if (!params.has('pwa')) return;
+
+  const raw = localStorage.getItem('sst_preview_record');
+  if (!raw) return;
+  let rec;
+  try { rec = JSON.parse(raw); } catch { return; }
+  localStorage.removeItem('sst_preview_record');
+
+  const code = rec.form_id;
+  const d    = rec.form_data || {};
+
+  /* ── FR-SST-43 ───────────────────────────────────── */
+  if (code === 'fr-sst-43') {
+    showForm('fr-sst-43');
+
+    // Meta fields
+    const fullName = `${rec.worker_name||''} ${rec.worker_lastname||''}`.trim();
+    const sm = (id, val) => { const el = document.getElementById(id); if (el) el.value = val||''; };
+    sm('43-nombre',  fullName);
+    sm('43-cc',      rec.worker_doc  || '');
+    sm('43-proceso', d.proceso       || '');
+    sm('43-cargo',   rec.worker_role || '');
+
+    // Tipo del documento
+    const tipoDoc = d.tipo === 'devolucion'             ? 'devolucion'
+                  : d.tipo === 'usado_en_obra'           ? 'uso'
+                  : d.estado_entrega === 'usado_en_obra' ? 'uso'
+                  : 'entrega';
+
+    const firmaName = tipoDoc === 'devolucion' ? d.firma_admin_devolucion
+                    : tipoDoc === 'uso'         ? d.firma_admin_obra
+                    :                             d.firma_trabajador;
+    const firmaImg  = tipoDoc === 'devolucion' ? d.firma_admin_devolucion_img
+                    : tipoDoc === 'uso'         ? d.firma_admin_obra_img
+                    :                             d.firma_trabajador_img;
+    const noTexto   = tipoDoc === 'devolucion' ? 'NO DEVUELTO'
+                    : tipoDoc === 'uso'         ? 'NO USADO'
+                    :                             'NO RECIBIDO';
+
+    // Table rows: fill each entrega
+    const entregas = Array.isArray(d.entregas) ? d.entregas : [];
+    const tbody43  = document.getElementById('43-tbody');
+    entregas.forEach((e, i) => {
+      const tr = tbody43.rows[i];
+      if (!tr) return;
+      const gi = ci => tr.cells[ci] ? tr.cells[ci].querySelector('input') : null;
+      if (gi(0)) gi(0).value = e.fecha    || '';
+      if (gi(1)) gi(1).value = e.epp      || '';
+      if (gi(2)) gi(2).value = e.cantidad || '';
+
+      const isNeg = tipoDoc === 'devolucion' ? e.estado_devolucion === 'no_devuelto'
+                  : tipoDoc === 'uso'         ? e.estado_uso        === 'no_usado'
+                  :                             e.estado_recepcion  === 'no_recibido';
+
+      const obsInp = gi(3);
+      if (obsInp) {
+        obsInp.value = isNeg ? noTexto : (firmaName || '');
+        if (isNeg) {
+          obsInp.style.color = 'var(--err)';
+          obsInp.style.fontWeight = '700';
+          if (tr.cells[3]) tr.cells[3].style.background = 'var(--err-bg)';
+        }
+      }
+    });
+
+    // Adjust FIRMA column header and badge for devolución / uso
+    if (tipoDoc !== 'entrega') {
+      const tbl43 = document.getElementById('tbl-43');
+      if (tbl43) {
+        const lastTh = tbl43.querySelector('thead tr th:last-child');
+        if (lastTh) lastTh.textContent = tipoDoc === 'devolucion'
+          ? 'FIRMA DE QUIEN RECIBE LA DEVOLUCIÓN'
+          : 'FIRMA DE QUIEN AUTORIZA USO EN OBRA';
+      }
+      const badge43 = document.querySelector('#tab-fr-sst-43 .dh-badge');
+      if (badge43) badge43.textContent = tipoDoc === 'devolucion'
+        ? 'FR-SST-43 · Devolución'
+        : 'FR-SST-43 · Uso en obra';
+    }
+
+    // Firma box: replace placeholder with actual signature
+    const firmaBox = document.querySelector('#tab-fr-sst-43 .firma-box');
+    if (firmaBox) {
+      const lbl = firmaBox.querySelector('.box-label');
+      if (lbl) lbl.textContent = tipoDoc === 'devolucion' ? 'Firma — quien recibe devolución'
+                                : tipoDoc === 'uso'         ? 'Firma — quien autoriza uso en obra'
+                                :                             'Firma del Trabajador';
+      const p  = firmaBox.querySelector('p');   if (p)  p.remove();
+      const fl = firmaBox.querySelector('.firma-line'); if (fl) fl.remove();
+
+      if (firmaImg) {
+        const img = document.createElement('img');
+        img.src = firmaImg;
+        img.style.cssText = 'max-width:160px;max-height:52px;object-fit:contain;display:block;margin:10px auto 0';
+        firmaBox.appendChild(img);
+      }
+      if (firmaName) {
+        const nd = document.createElement('div');
+        nd.style.cssText = 'font-size:11px;color:var(--txt);font-weight:600;border-top:1px solid var(--hair);padding-top:5px;text-align:center;margin-top:8px';
+        nd.textContent = firmaName;
+        firmaBox.appendChild(nd);
+      }
+      if (!firmaImg && !firmaName) {
+        const fl2 = document.createElement('div');
+        fl2.className = 'firma-line';
+        fl2.textContent = 'Pendiente de firma';
+        firmaBox.appendChild(fl2);
+      }
+    }
+
+    // Observaciones box
+    const obsTA = document.querySelector('#tab-fr-sst-43 .obs-box textarea');
+    if (obsTA && d.anotaciones_admin) obsTA.value = d.anotaciones_admin;
+  }
+
+  // Auto-print when opened with ?print=1
+  if (params.get('print') === '1') {
+    document.title = `PDF · ${rec.form_id} · ${rec.worker_name||''} ${rec.worker_lastname||''}`.trim();
+    setTimeout(() => window.print(), 700);
+  }
+})();
+
+/* ─── INIT ─── */
+buildDayThs('36-days-m');
+buildDayThs('36-days-e');
+build36Table('36-tbody-m', D36_MENORES, 'M', '🔧  HERRAMIENTAS MENORES');
+build36Table('36-tbody-e', D36_ELEC,    'E', '⚡  HERRAMIENTAS ELÉCTRICAS');
+build37Table();
+build38Table();
+build39Table();
+build40Table();
+build41Table();
+build42Section('42a-tbody', D42A, '42a', '42a-score');
+build42Section('42b-tbody', D42B, '42b', '42b-score');
+build43Table();
+loadForm36();
+loadForm37();
+loadForm38();
+loadForm39();
+loadForm40();
+loadForm41();
+loadForm42();
+loadForm43();
+
+// Mes por defecto
+const hoy = new Date();
+const mesStr = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
+if(!document.getElementById('36-mes').value) document.getElementById('36-mes').value = mesStr;
+if(!document.getElementById('37-mes').value) document.getElementById('37-mes').value = mesStr;
+if(!document.getElementById('39-mes').value) document.getElementById('39-mes').value = mesStr;
+
+const hasSaved = ['fr-sst-36','fr-sst-37','fr-sst-38','fr-sst-39','fr-sst-40','fr-sst-41','fr-sst-42','fr-sst-43'].some(c=>Object.keys(getState(c)).length>0);
+if(hasSaved){ document.getElementById('savestate').textContent='borrador cargado'; document.getElementById('savestate').classList.add('ok'); }
+</script>
+</body>
+</html>

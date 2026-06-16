@@ -1,10 +1,11 @@
-const CACHE = 'sst-datcer-v8';
+const CACHE = 'sst-datcer-v9';
 
 const ASSETS = [
   './index.html',
   './form.html',
   './admin.html',
   './firma.html',
+  './sst-design-templates.html',
   './manifest.json',
   './css/app.css',
   './js/config.js',

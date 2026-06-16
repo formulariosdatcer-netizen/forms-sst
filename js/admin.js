@@ -367,35 +367,28 @@ function renderDetailField(field, data) {
   }
 }
 
-// ── PDF ───────────────────────────────────────────────────
-async function previewPDF(index) {
-  const record = window._filteredRecords[index];
+// ── PDF / Vista previa vía sst-design-templates.html ────────
+function _openDesignTemplate(record, print) {
   if (!record) return;
-  await PDF.generate(record, 'preview');
+  localStorage.setItem('sst_preview_record', JSON.stringify(record));
+  const url = './sst-design-templates.html?pwa=1' + (print ? '&print=1' : '');
+  window.open(url, '_blank');
 }
 
-async function downloadPDF(index) {
-  const record = window._filteredRecords[index];
-  if (!record) return;
-  await PDF.generate(record, 'save');
+function previewPDF(index) {
+  _openDesignTemplate(window._filteredRecords[index], false);
 }
 
-async function downloadCurrentPDF() {
-  if (!_currentRecord) return;
-  const btn = document.getElementById('pdf-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Generando...';
-  try {
-    await PDF.generate(_currentRecord, 'save');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '⬇️ Descargar PDF';
-  }
+function downloadPDF(index) {
+  _openDesignTemplate(window._filteredRecords[index], true);
 }
 
-async function previewCurrentPDF() {
-  if (!_currentRecord) return;
-  await PDF.generate(_currentRecord, 'preview');
+function downloadCurrentPDF() {
+  _openDesignTemplate(_currentRecord, true);
+}
+
+function previewCurrentPDF() {
+  _openDesignTemplate(_currentRecord, false);
 }
 
 // ── Sync ──────────────────────────────────────────────────
