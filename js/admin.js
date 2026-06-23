@@ -529,35 +529,44 @@ function abrirModalAdmin({ titulo, items, siLabel, noLabel, onConfirm }) {
     </div>`).join('') : '<p style="color:#888;font-size:13px;padding:8px 0">Sin ítems registrados</p>';
 
   document.body.insertAdjacentHTML('beforeend', `
-    <div id="_asigmodal" style="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;overflow-y:auto;display:flex;align-items:flex-end;justify-content:center">
-      <div style="background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:640px;padding:20px 20px 36px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <h3 style="font-size:16px;color:#212121">${titulo}</h3>
-          <button onclick="_mCerrar()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1">✕</button>
+    <div id="_asigmodal" style="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:flex-end;justify-content:center">
+      <div style="background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:640px;max-height:92dvh;display:flex;flex-direction:column;">
+        <!-- Cabecera fija -->
+        <div style="padding:18px 20px 12px;border-bottom:1px solid #f0f0f0;flex-shrink:0">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <h3 style="font-size:16px;color:#212121;margin:0">${titulo}</h3>
+            <button onclick="_mCerrar()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1">✕</button>
+          </div>
         </div>
-        ${itemsHtml}
-        <div style="margin:16px 0 12px">
-          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">Tu nombre completo *</label>
-          <input id="_mnombre" type="text" style="width:100%;padding:10px 12px;border:2px solid #e0e0e0;border-radius:8px;font-size:15px;box-sizing:border-box" placeholder="Nombre completo del responsable">
+        <!-- Zona desplazable: items + nombre + firma -->
+        <div style="flex:1;overflow-y:auto;padding:0 20px;-webkit-overflow-scrolling:touch">
+          ${itemsHtml}
+          <div style="margin:16px 0 12px">
+            <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">Tu nombre completo *</label>
+            <input id="_mnombre" type="text" style="width:100%;padding:10px 12px;border:2px solid #e0e0e0;border-radius:8px;font-size:15px;box-sizing:border-box" placeholder="Nombre completo del responsable">
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <button id="_mtdraw" onclick="_mSwitchTab('draw')" style="flex:1;padding:9px;border:2px solid #E87722;background:#fff3e0;border-radius:8px;cursor:pointer;font-size:13px;color:#E87722;font-weight:700">✏️ Firmar</button>
+            <button id="_mtupload" onclick="_mSwitchTab('upload')" style="flex:1;padding:9px;border:2px solid #e0e0e0;background:#fff;border-radius:8px;cursor:pointer;font-size:13px;color:#666">📎 Subir imagen</button>
+          </div>
+          <div id="_mdrawarea" style="border:2px dashed #ccc;border-radius:10px;overflow:hidden;background:#fafafa;position:relative;margin-bottom:12px">
+            <canvas id="_mcanvas" style="display:block;width:100%;height:130px;cursor:crosshair;touch-action:none"></canvas>
+            <div id="_mcanvasph" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:13px;pointer-events:none">✍️ Firma aquí con el dedo o cursor</div>
+            <button onclick="_mClearCanvas()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.12);border:none;border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer">✕ Borrar</button>
+          </div>
+          <div id="_muploadarea" style="display:none;margin-bottom:12px">
+            <label style="display:block;padding:11px;border:2px solid #e0e0e0;border-radius:8px;text-align:center;cursor:pointer;font-size:13px;color:#666">
+              📎 Seleccionar imagen de firma
+              <input type="file" accept="image/*" style="display:none" onchange="_mHandleUpload(this)">
+            </label>
+            <img id="_muploadpreview" style="max-width:100%;max-height:120px;display:none;margin-top:8px;border-radius:6px">
+          </div>
         </div>
-        <div style="display:flex;gap:8px;margin-bottom:12px">
-          <button id="_mtdraw" onclick="_mSwitchTab('draw')" style="flex:1;padding:9px;border:2px solid #E87722;background:#fff3e0;border-radius:8px;cursor:pointer;font-size:13px;color:#E87722;font-weight:700">✏️ Firmar</button>
-          <button id="_mtupload" onclick="_mSwitchTab('upload')" style="flex:1;padding:9px;border:2px solid #e0e0e0;background:#fff;border-radius:8px;cursor:pointer;font-size:13px;color:#666">📎 Subir imagen</button>
+        <!-- Botones fijos al fondo -->
+        <div style="padding:14px 20px 28px;border-top:1px solid #f0f0f0;flex-shrink:0;display:flex;flex-direction:column;gap:8px">
+          <button onclick="_mConfirmar()" style="width:100%;padding:14px;background:#E87722;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">✅ Confirmar</button>
+          <button onclick="_mCerrar()" style="width:100%;padding:12px;background:#f5f5f5;color:#555;border:none;border-radius:10px;font-size:14px;cursor:pointer">Cancelar</button>
         </div>
-        <div id="_mdrawarea" style="border:2px dashed #ccc;border-radius:10px;overflow:hidden;background:#fafafa;position:relative;margin-bottom:12px">
-          <canvas id="_mcanvas" style="display:block;width:100%;height:130px;cursor:crosshair;touch-action:none"></canvas>
-          <div id="_mcanvasph" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:13px;pointer-events:none">✍️ Firma aquí con el dedo o cursor</div>
-          <button onclick="_mClearCanvas()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.12);border:none;border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer">✕ Borrar</button>
-        </div>
-        <div id="_muploadarea" style="display:none;margin-bottom:12px">
-          <label style="display:block;padding:11px;border:2px solid #e0e0e0;border-radius:8px;text-align:center;cursor:pointer;font-size:13px;color:#666">
-            📎 Seleccionar imagen de firma
-            <input type="file" accept="image/*" style="display:none" onchange="_mHandleUpload(this)">
-          </label>
-          <img id="_muploadpreview" style="max-width:100%;max-height:120px;display:none;margin-top:8px;border-radius:6px">
-        </div>
-        <button onclick="_mConfirmar()" style="width:100%;padding:14px;background:#E87722;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px">✅ Confirmar</button>
-        <button onclick="_mCerrar()" style="width:100%;padding:12px;background:#f5f5f5;color:#555;border:none;border-radius:10px;font-size:14px;cursor:pointer">Cancelar</button>
       </div>
     </div>`);
   document.body.style.overflow = 'hidden';
